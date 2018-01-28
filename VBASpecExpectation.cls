@@ -388,3 +388,380 @@ Private Function AnyValueAsText(Value As Variant, Optional bShowAddress As Boole
         End Select
     End If
 End Function
+
+'========================================================================================================================================'
+
+#If TESTING Then
+Friend Sub UnitTest(Suite As VBASpecSuite)
+    With Suite.Describe("VBASpecExpectation")
+        Dim subject As VBASpecExpectation
+        
+        With .Describe("#Actual")
+            Set subject = New VBASpecExpectation
+            
+            With .It("is empty by default")
+                .Expect(subject.Actual).ToBeEmpty
+            End With
+            With .It("accepts anything")
+                subject.Actual = True
+                .Expect(subject.Actual).ToBeA "Boolean"
+                subject.Actual = "String"
+                .Expect(subject.Actual).ToBeA "String"
+                subject.Actual = 1
+                .Expect(subject.Actual).ToBeAn "Integer"
+                subject.Actual = 1#
+                .Expect(subject.Actual).ToBeA "Double"
+                subject.Actual = Null
+                .Expect(subject.Actual).ToBeA "Null"
+                Set subject.Actual = New VBASpecExpectation
+                .Expect(subject.Actual).ToBeA "VBASpecExpectation"
+            End With
+        End With
+        
+        With .Describe("#Expected")
+            Set subject = New VBASpecExpectation
+            
+            With .It("is empty by default")
+                .Expect(subject.Expected).ToBeEmpty
+            End With
+            With .It("accepts anything")
+                subject.Expected = True
+                .Expect(subject.Expected).ToBeA "Boolean"
+                subject.Expected = "String"
+                .Expect(subject.Expected).ToBeA "String"
+                subject.Expected = 1
+                .Expect(subject.Expected).ToBeAn "Integer"
+                subject.Expected = 1#
+                .Expect(subject.Expected).ToBeA "Double"
+                subject.Expected = Null
+                .Expect(subject.Expected).ToBeA "Null"
+                Set subject.Expected = New VBASpecExpectation
+                .Expect(subject.Expected).ToBeA "VBASpecExpectation"
+            End With
+        End With
+        
+        With .Describe("#Passed")
+            Set subject = New VBASpecExpectation
+            
+            With .It("is false by default")
+                .Expect(subject.Passed).ToBeFalse
+            End With
+            With .It("is true when the expectation is met")
+                subject.Actual = 1 + 1
+                subject.ToEqual 2
+                .Expect(subject.Passed).ToBeTrue
+            End With
+            With .It("is false when the expectation is not met")
+                subject.Actual = 1 + 1
+                subject.ToEqual 3
+                .Expect(subject.Passed).ToBeFalse
+            End With
+        End With
+        
+        With .Describe("#Failed")
+            Set subject = New VBASpecExpectation
+            
+            With .It("is false by default")
+                .Expect(subject.Failed).ToBeFalse
+            End With
+            With .It("is false when the expectation is met")
+                subject.Actual = 1 + 1
+                subject.ToEqual 2
+                .Expect(subject.Failed).ToBeFalse
+            End With
+            With .It("is true when the expectation is not met")
+                subject.Actual = 1 + 1
+                subject.ToEqual 3
+                .Expect(subject.Failed).ToBeTrue
+            End With
+        End With
+        
+        With .Describe("#FailureMessage")
+            Set subject = New VBASpecExpectation
+            
+            With .Context("when the expectation is met")
+                subject.Actual = True
+                subject.ToBeTrue
+                
+                With .It("is empty")
+                    .Expect(subject.FailureMessage).ToBeEmpty
+                End With
+            End With
+            With .Context("when the expectation is not met")
+                subject.Actual = 2358.13
+                subject.ToEqual "Fibonacci"
+                
+                With .It("returns a failure message")
+                    .Expect(subject.FailureMessage).ToNotBeEmpty
+                End With
+                With .It("includes the Actual in the failure message")
+                    .Expect(subject.FailureMessage).ToInclude "2358" & Mid$(1 / 2, 2, 1) & "13"
+                End With
+                With .It("includes the Expected in the failure message")
+                    .Expect(subject.FailureMessage).ToInclude "Fibonacci"
+                End With
+                With .It("surrounds strings with double quotes")
+                    .Expect(subject.FailureMessage).ToInclude """Fibonacci"""
+                End With
+            End With
+        End With
+        With .Describe(".ToEqual/.ToNotEqual")
+            With .It("works with Booleans")
+                .Expect(True).ToEqual True
+                .Expect(True).ToNotEqual False
+            End With
+            With .It("works with Strings")
+                .Expect("Abc").ToEqual "Abc"
+                .Expect("Abc").ToNotEqual "abc"
+            End With
+            With .It("works with Integers")
+                .Expect(2048).ToEqual 2048
+                .Expect(2048).ToNotEqual 2049
+            End With
+            With .It("works with Decimals")
+                .Expect(3.14159265358979).ToEqual 3.14159265358979
+                .Expect(3.14159265358979).ToNotEqual 3.1415926535898
+            End With
+        End With
+        
+        With .Describe(".ToBe/.ToNotBe")
+            Dim SameObject As New VBASpecExpectation
+            Dim OtherObject As New VBASpecExpectation
+            
+            Set subject = SameObject
+            
+            With .It("works if both Actual and Expected are Objects")
+                .Expect(subject).ToBe SameObject
+                .Expect(subject).ToNotBe OtherObject
+            End With
+            With .It("gracefully fails if either Actual or Expected is not an Object")
+                .Expect(subject).ToNotBe "aString"
+                .Expect("aString").ToNotBe subject
+                .Expect("aString").ToNotBe "aString"
+            End With
+        End With
+        
+        With .Describe(".ToBeA/.ToBeAn/.ToNotBeA/.ToNotBeAn")
+            With .It("works")
+                .Expect(True).ToBeA "Boolean"
+                .Expect("String").ToBeA "String"
+                .Expect(2048).ToBeAn "Integer"
+                .Expect(100#).ToBeA "Double"
+                .Expect(Null).ToBeA "Null"
+                Dim oObject As New VBASpecExpectation
+                .Expect(oObject).ToBeA "VBASpecExpectation"
+            End With
+            With .It("does not coerce Strings")
+                .Expect(True).ToBeA "Boolean"
+                .Expect("True").ToNotBeA "Boolean"
+                .Expect("True").ToBeA "String"
+                .Expect(2048).ToBeAn "Integer"
+                .Expect("2048").ToNotBeAn "Integer"
+                .Expect("2048").ToBeA "String"
+            End With
+            With .It("does not coerce Numbers")
+                .Expect(100#).ToBeA "Double"
+                .Expect(100#).ToNotBeA "Single"
+                .Expect(100#).ToNotBeAn "Integer"
+            End With
+        End With
+        
+        With .Describe(".ToBeEmpty/.ToNotBeEmpty")
+            With .It("passes when Actual is Missing, Nothing, Empty or Null")
+                .Expect(Nothing).ToBeEmpty
+                .Expect(Empty).ToBeEmpty
+                .Expect(Null).ToBeEmpty
+                .Expect().ToBeEmpty
+                .Expect(0).ToNotBeEmpty
+            End With
+            With .It("passes when Actual is an empty String")
+                .Expect("").ToBeEmpty
+                .Expect(" ").ToBeEmpty
+                .Expect("!").ToNotBeEmpty
+            End With
+        End With
+        With .Describe(".ToBeNothing/.ToNotBeNothing")
+            With .It("passes only when Actual is Nothing")
+                .Expect(Nothing).ToBeNothing
+                .Expect(Empty).ToNotBeNothing
+                .Expect(Null).ToNotBeNothing
+                .Expect().ToNotBeNothing
+            End With
+        End With
+        
+        With .Describe(".ToBeFalsy")
+            With .It("passes when Actual evaluates to False")
+                .Expect(False).ToBeFalsy
+                .Expect(0).ToBeFalsy
+                .Expect(0#).ToBeFalsy
+            End With
+        End With
+        With .Describe(".ToBeFalse")
+            With .It("passes when Actual is False")
+                .Expect(False).ToBeFalse
+            End With
+        End With
+        
+        With .Describe(".ToBeTruthy")
+            With .It("passes when Actual evaluates to True")
+                .Expect(True).ToBeTruthy
+                .Expect(1).ToBeTruthy
+                .Expect(2).ToBeTruthy
+                .Expect(0.1).ToBeTruthy
+            End With
+        End With
+        With .Describe(".ToBeTrue")
+            With .It("passes when Actual is True")
+                .Expect(True).ToBeTrue
+            End With
+        End With
+        
+        With .Describe(".ToBeLessThan")
+            With .It("passes when Actual is less than Expected")
+                .Expect(1).ToBeLessThan 2
+                .Expect(1.99).ToBeLessThan 2
+            End With
+        End With
+        With .Describe(".ToBeLT")
+            With .It("passes when Actual < Expected")
+                .Expect(1).ToBeLT 2
+                .Expect(1.99).ToBeLT 2
+            End With
+        End With
+        
+        With .Describe(".ToBeLessThanOrEqualTo")
+            With .It("passes when Actual is less than or equal to Expected")
+                .Expect(1).ToBeLessThanOrEqualTo 2
+                .Expect(2).ToBeLessThanOrEqualTo 2
+                .Expect(1.99).ToBeLessThanOrEqualTo 2
+                .Expect(2#).ToBeLessThanOrEqualTo 2
+            End With
+        End With
+        With .Describe(".ToBeLTE")
+            With .It("passes when Actual <= Expected")
+                .Expect(1).ToBeLTE 2
+                .Expect(2).ToBeLTE 2
+                .Expect(1.99).ToBeLTE 2
+                .Expect(2#).ToBeLTE 2
+            End With
+        End With
+        
+        With .Describe(".ToBeGreaterThan")
+            With .It("passes when Actual is greater than Expected")
+                .Expect(2).ToBeGreaterThan 1
+                .Expect(1.01).ToBeGreaterThan 1
+            End With
+        End With
+        With .Describe(".ToBeGT")
+            With .It("passes when Actual > Expected")
+                .Expect(2).ToBeGT 1
+                .Expect(1.01).ToBeGT 1
+            End With
+        End With
+        
+        With .Describe(".ToBeGreaterThanOrEqualTo")
+            With .It("passes when Actual is greater than or equal to Expected")
+                .Expect(2).ToBeGreaterThanOrEqualTo 1
+                .Expect(1).ToBeGreaterThanOrEqualTo 1
+                .Expect(1.01).ToBeGreaterThanOrEqualTo 1
+                .Expect(1#).ToBeGreaterThanOrEqualTo 1
+            End With
+        End With
+        With .Describe(".ToBeGTE")
+            With .It("passes when Actual >= Expected")
+                .Expect(2).ToBeGTE 1
+                .Expect(1).ToBeGTE 1
+                .Expect(1.01).ToBeGTE 1
+                .Expect(1#).ToBeGTE 1
+            End With
+        End With
+        
+        With .Describe(".ToBeCloseTo/.ToNotBeCloseTo")
+            With .It("passes when Actual is close to Expected (defaults to 2 sigificant figures)")
+                .Expect(1.01).ToBeCloseTo 1
+                .Expect(1.12).ToBeCloseTo 1.1
+                .Expect(2).ToNotBeCloseTo 1
+                .Expect(1.1).ToNotBeCloseTo 1
+                .Expect(1.08).ToNotBeCloseTo 1
+                .Expect(0.0001).ToNotBeCloseTo 0.00001
+            End With
+            With .It("can be set up to 15 significant figures")
+                .Expect(3.14159265358979).ToBeCloseTo 3, 1
+                .Expect(3.14159265358979).ToBeCloseTo 3.1, 2
+                .Expect(3.14159265358979).ToBeCloseTo 3.14, 3
+                .Expect(3.14159265358979).ToBeCloseTo 3.142, 4
+                .Expect(3.14159265358979).ToBeCloseTo 3.1416, 5
+                .Expect(3.14159265358979).ToBeCloseTo 3.14159, 6
+                .Expect(3.14159265358979).ToBeCloseTo 3.141593, 7
+                .Expect(3.14159265358979).ToBeCloseTo 3.1415927, 8
+                .Expect(3.14159265358979).ToBeCloseTo 3.14159265, 9
+                .Expect(3.14159265358979).ToBeCloseTo 3.141592654, 10
+                .Expect(3.14159265358979).ToBeCloseTo 3.1415926536, 11
+                .Expect(3.14159265358979).ToBeCloseTo 3.14159265359, 12
+                .Expect(3.14159265358979).ToBeCloseTo 3.1415926535898, 14
+                .Expect(3.14159265358979).ToBeCloseTo 3.14159265358979, 15
+                
+                .Expect(3.14159265358979).ToNotBeCloseTo 3, 2
+                .Expect(3.14159265358979).ToNotBeCloseTo 3.1, 3
+                .Expect(3.14159265358979).ToNotBeCloseTo 3.14, 4
+                .Expect(3.14159265358979).ToNotBeCloseTo 3.142, 5
+                .Expect(3.14159265358979).ToNotBeCloseTo 3.1416, 6
+                .Expect(3.14159265358979).ToNotBeCloseTo 3.14159, 7
+                .Expect(3.14159265358979).ToNotBeCloseTo 3.141593, 8
+                .Expect(3.14159265358979).ToNotBeCloseTo 3.1415927, 9
+                .Expect(3.14159265358979).ToNotBeCloseTo 3.14159265, 10
+                .Expect(3.14159265358979).ToNotBeCloseTo 3.141592654, 11
+                .Expect(3.14159265358979).ToNotBeCloseTo 3.1415926535898, 15
+            End With
+        End With
+        
+        With .Describe(".ToInclude/.ToNotInclude")
+            With .Context("when Actual is a String")
+                Dim sSubject As String
+                sSubject = "a String"
+                
+                With .It("works")
+                    .Expect(sSubject).ToInclude "String"
+                    .Expect(sSubject).ToNotInclude "Strong"
+                End With
+                With .It("is not case sensitive")
+                    .Expect(sSubject).ToInclude "string"
+                End With
+            End With
+            
+            Dim colIncluded As New Collection
+            Dim colOther As New Collection
+            With .Context("when Actual is an Array")
+                Dim arrSubject As Variant
+                arrSubject = Array(1, "Two", colIncluded)
+                
+                With .It("works with expressions")
+                    .Expect(arrSubject).ToInclude 1
+                    .Expect(arrSubject).ToInclude "Two"
+                    .Expect(arrSubject).ToNotInclude 2
+                End With
+                With .It("works with objects")
+                    .Expect(arrSubject).ToInclude colIncluded
+                    .Expect(arrSubject).ToNotInclude colOther
+                End With
+            End With
+            With .Context("when Actual is a Collection")
+                Dim colSubject As New Collection
+                colSubject.Add 1
+                colSubject.Add "Two"
+                colSubject.Add colIncluded
+                
+                With .It("works with expressions")
+                    .Expect(colSubject).ToInclude 1
+                    .Expect(colSubject).ToInclude "Two"
+                    .Expect(colSubject).ToNotInclude 2
+                End With
+                With .It("works with objects")
+                    .Expect(colSubject).ToInclude colIncluded
+                    .Expect(colSubject).ToNotInclude colOther
+                End With
+            End With
+        End With
+    End With
+End Sub
+#End If

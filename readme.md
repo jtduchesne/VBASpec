@@ -59,46 +59,54 @@ which mimics the *closure syntax*, found in [interpreted languages](https://en.w
 
 ## Expectations:
 
+[`VBASpecExpectation`](https://github.com/jtduchesne/VBASpec/blob/master/VBASpecExpectation.cls) class provides methods that lets you express expected outcomes on an object in an example.
+```vb
+.Expect(1 + 1).ToEqual 2  'Passes
+.Expect(1 + 1).ToEqual 3  'Fails with message: "Expected 2 to equal 3"
+```
+
+Here is the list of all expectations, along with their negated counterpart:
+
 #### Equivalence
 ```vb
-Expect(Actual).ToEqual Expected    'Actual = Expected
-Expect(Actual).ToNotEqual Expected
-Expect(Actual).ToBe Expected       'Actual Is Expected
-Expect(Actual).ToNotBe Expected
+.Expect(Actual).ToEqual Expected    'Actual = Expected
+.Expect(Actual).ToNotEqual Expected
+.Expect(Actual).ToBe Expected       'Actual Is Expected
+.Expect(Actual).ToNotBe Expected
 ```
 #### Types
 ```vb
-Expect(Actual).ToBeA/ToBeAn Expected       'TypeName(Actual) = Expected
-Expect(Actual).ToNotBeA/ToNotBeAn Expected
+.Expect(Actual).ToBeA/ToBeAn Expected       'TypeName(Actual) = Expected
+.Expect(Actual).ToNotBeA/ToNotBeAn Expected
 ```
 #### Emptyness
 ```vb
-Expect(Actual).ToBeEmpty           'Actual = (Empty|Nothing|Null|Missing|"")
-Expect(Actual).ToNotBeEmpty
-Expect(Actual).ToBeNothing         'Actual Is Nothing
-Expect(Actual).ToNotBeNothing
+.Expect(Actual).ToBeEmpty           'Actual = (Empty|Nothing|Null|Missing|"")
+.Expect(Actual).ToNotBeEmpty
+.Expect(Actual).ToBeNothing         'Actual Is Nothing
+.Expect(Actual).ToNotBeNothing
 ```
 #### Truthyness
 ```vb
-Expect(Actual).ToBeTrue            'Actual = True
-Expect(Actual).ToBeTruthy          'Actual evaluates to True
-Expect(Actual).ToBeFalse           'Actual = False
-Expect(Actual).ToBeFalsy           'Actual evaluates to False
+.Expect(Actual).ToBeTrue            'Actual = True
+.Expect(Actual).ToBeTruthy          'Actual evaluates to True
+.Expect(Actual).ToBeFalse           'Actual = False
+.Expect(Actual).ToBeFalsy           'Actual evaluates to False
 ```
 #### Comparisons
 ```vb
-Expect(Actual).ToBeLessThan/ToBeLT Expected
-Expect(Actual).ToBeLessThanOrEqual/ToBeLTE Expected
-Expect(Actual).ToBeGreaterThan/ToBeGT Expected
-Expect(Actual).ToBeGreaterThanOrEqual/ToBeGTE Expected
+.Expect(Actual).ToBeLessThan/ToBeLT Expected
+.Expect(Actual).ToBeLessThanOrEqual/ToBeLTE Expected
+.Expect(Actual).ToBeGreaterThan/ToBeGT Expected
+.Expect(Actual).ToBeGreaterThanOrEqual/ToBeGTE Expected
 
-Expect(Actual).ToBeCloseTo Expected, [SignificantFigures (Default: 2)]
-Expect(Actual).ToNotBeCloseTo Expected, [SignificantFigures (Default: 2)]
+.Expect(Actual).ToBeCloseTo Expected, [SignificantFigures (Default: 2)]
+.Expect(Actual).ToNotBeCloseTo Expected, [SignificantFigures (Default: 2)]
 ```
 #### Collection/String membership
 ```vb
-Expect(Actual).ToInclude Expected  'Expected is included in Actual
-                                   '(works with Arrays, Collections and Strings)
+.Expect(Actual).ToInclude Expected  'Expected is included in Actual
+                                    '(works with Arrays, Collections and Strings)
 ```
 
 ## Example:
