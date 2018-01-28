@@ -2,11 +2,11 @@
 Test-Driven Development (TDD) platform for VBA.
 
 Strongly inspired by *Ruby*'s [RSpec](https://github.com/rspec/rspec-core).  
-Also inspired by [VBA-TDD](https://github.com/VBA-tools/VBA-TDD) for the "`With` structure" and the [*Expectation*](#Expectations) syntax.
+Also inspired by [VBA-TDD](https://github.com/VBA-tools/VBA-TDD) for the "`With` structure" and the [*Expectation*](#expectations) syntax.
 
 ## Installation
 
-1. Download the file `VBASpec.xlam`.
+1. [Download the file `VBASpec.xlam`.](https://github.com/jtduchesne/VBASpec/raw/master/VBASpec.xlam)
 2. Put it in your Office Addins folder (usually `~\AppData\Roaming\Microsoft\Addins\`).
 3. [Follow this guide](https://support.office.com/en-us/article/add-or-remove-add-ins-in-excel-0af570c4-5cf3-4fa9-9b88-403625a0b460) to activate it via the *Addins* dialog.
 4. [And this one](https://msdn.microsoft.com/en-us/vba/language-reference-vba/articles/check-or-add-an-object-library-reference) to add the Reference in your code.
@@ -35,7 +35,7 @@ With Suite.Describe("Something")
     With .It("exists")
         .Expect(something).ToNotBeNothing
 ```
-Under the hood, the `Describe()` method returns an *ExampleGroup* class which is passed to the `With` statement. You can then access its `It()` method (notice the preceding `.`), which then returns an *Example* class which have a `Expect()` method (again the preceding `.`) that returns a [*Expectation*](#Expectations) class.  
+Under the hood, the `Describe()` method returns an *ExampleGroup* class which is passed to the `With` statement. You can then access its `It()` method (notice the preceding `.`), which then returns an *Example* class which have a `Expect()` method (again the preceding `.`) that returns an [*Expectation*](#expectations) class.  
 
 So the last piece of code could as well have been written like so:
 ```vb
