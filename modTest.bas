@@ -9,6 +9,9 @@ Sub Test()
     With New VBASpecExpectation
         .UnitTest Suite
     End With
+    With New VBASpecExample
+        .UnitTest Suite
+    End With
 End Sub
 #End If
 

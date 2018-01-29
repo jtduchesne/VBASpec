@@ -139,3 +139,121 @@ Public Function Expect(Optional Actual As Variant) As VBASpecExpectation
     
     Set Expect = Expectation
 End Function
+
+'========================================================================================================================================'
+
+#If TESTING Then
+Friend Sub UnitTest(Suite As VBASpecSuite)
+    With Suite.Describe("VBASpecExample")
+        Dim oSuite As New VBASpecSuite
+        oSuite.Silent = True
+        
+        Dim subject As VBASpecExample
+        
+        With .Describe("#CompleteDescription")
+            Set subject = oSuite.Describe("An Object").It("returns something")
+            
+            With .It("returns a pseudo-sentence made with the parent's description")
+                .Expect(subject.CompleteDescription).ToEqual "An Object returns something"
+            End With
+        End With
+        
+        With .Describe("#Suite")
+            With .It("Always return the original #Suite")
+                .Expect(oSuite.Describe("").It("").Suite).ToBe oSuite
+                .Expect(oSuite.Describe("").Context("").It("").Suite).ToBe oSuite
+            End With
+        End With
+        
+        With .Describe("#Pending")
+            Set subject = New VBASpecExample
+            
+            With .Context("if there is no expectations")
+                With .It("returns True")
+                    .Expect(subject.Pending).ToBeTrue
+                End With
+            End With
+            With .Context("if there is an expectation")
+                subject.Expect("Something").ToEqual "Something"
+                
+                With .It("returns False")
+                    .Expect(subject.Pending).ToBeFalse
+                End With
+            End With
+        End With
+        
+        With .Describe("#Result")
+            Set subject = New VBASpecExample
+            
+            With .Context("if there is no expectations")
+                With .It("defaults to -Pending-")
+                    .Expect(subject.Result).ToEqual eVBASpecResult.Pending
+                End With
+            End With
+            With .Context("if all expectations passes")
+                Set subject = New VBASpecExample
+                subject.Expect(True).ToBeTrue
+                subject.Expect(False).ToBeFalse
+                
+                With .It("returns -Passed-")
+                    .Expect(subject.Result).ToEqual eVBASpecResult.Passed
+                End With
+            End With
+            With .Context("if any expectation fails")
+                Set subject = New VBASpecExample
+                subject.Expect(True).ToBeTrue
+                subject.Expect(True).ToBeFalse
+                
+                With .It("returns -Failed-")
+                    .Expect(subject.Result).ToEqual eVBASpecResult.Failed
+                End With
+            End With
+        End With
+        
+        With .Describe("#Expectations([Filter])")
+            Set subject = New VBASpecExample
+            Dim oPassed As VBASpecExpectation
+            Dim oFailed As VBASpecExpectation
+            With subject
+                Set oPassed = .Expect(True).ToBeTrue
+                Set oFailed = .Expect(True).ToBeFalse
+            End With
+            
+            With .Context("without any filters")
+                With .It("returns all expectations")
+                    .Expect(subject.Expectations).ToInclude oPassed
+                    .Expect(subject.Expectations).ToInclude oFailed
+                End With
+            End With
+            With .Context("if Filter = Passed")
+                With .It("returns only passed expectations")
+                    .Expect(subject.Expectations(Passed)).ToInclude oPassed
+                    .Expect(subject.Expectations(Passed)).ToNotInclude oFailed
+                End With
+            End With
+            With .Context("if Filter = Failed")
+                With .It("returns only failed expectations")
+                    .Expect(subject.Expectations(Failed)).ToNotInclude oPassed
+                    .Expect(subject.Expectations(Failed)).ToInclude oFailed
+                End With
+            End With
+        End With
+        
+        With .Describe(".Expect(Actual)")
+            Set subject = New VBASpecExample
+            
+            With .It("returns an VBASpecExpectation")
+                .Expect(subject.Expect).ToBeA "VBASpecExpectation"
+            End With
+            With .It("accepts an expression")
+                .Expect(subject.Expect(2).Actual).ToEqual 2
+                .Expect(subject.Expect(3.5).Actual).ToEqual 3.5
+                .Expect(subject.Expect("Eight").Actual).ToEqual "Eight"
+            End With
+            With .It("accepts an object")
+                .Expect(subject.Expect(subject).Actual).ToBe subject
+            End With
+        End With
+    End With
+End Sub
+#End If
