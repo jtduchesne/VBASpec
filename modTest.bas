@@ -12,6 +12,8 @@ Sub Test()
     With New VBASpecExample
         .UnitTest Suite
     End With
+    With New VBASpecExampleGroup
+        .UnitTest Suite
+    End With
 End Sub
 #End If
-
