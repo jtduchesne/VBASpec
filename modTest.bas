@@ -15,5 +15,9 @@ Sub Test()
     With New VBASpecExampleGroup
         .UnitTest Suite
     End With
+    With New VBASpecSuite
+        .Silent = True
+        .UnitTest Suite
+    End With
 End Sub
 #End If
