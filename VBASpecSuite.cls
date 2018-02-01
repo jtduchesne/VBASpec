@@ -51,11 +51,11 @@ Friend Property Let Silent(bValue As Boolean)
     If bValue Then Set oOutput = New VBASpecNullOutput
 End Property
 
-Public Property Get Output() As IVBASpecOutput
-    Set Output = oOutput
+Public Property Get Verbose() As Boolean
+    Silent = (TypeOf oOutput Is VBASpecFormOutput)
 End Property
-Public Property Set Output(oValue As IVBASpecOutput)
-    Set oOutput = oValue
+Public Property Let Verbose(bValue As Boolean)
+    If bValue Then Set oOutput = New VBASpecFormOutput
 End Property
 
 '========================================================================================================================================'

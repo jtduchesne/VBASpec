@@ -4,11 +4,9 @@ BEGIN
 END
 Attribute VB_Name = "VBASpecFormOutput"
 Attribute VB_GlobalNameSpace = False
-Attribute VB_Creatable = True
+Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
-Attribute VB_Exposed = True
-'Pour activer l'attribut "VB_Creatable" a partir de la fenetre d'Execution:
-'Workbooks("VBASpec.xlam").VBProject.VBComponents("VBASpecFormOutput").Properties("Instancing") = 5
+Attribute VB_Exposed = False
 Option Explicit
 
 Implements IVBASpecOutput
