@@ -14,8 +14,6 @@ Private Const sSpace As String = " "
 Private sDescription As String
 Private sParentDescription As String
 
-Private colExamples As Collection
-
 Private clsSuite As VBASpecSuite
 Private clsParent As VBASpecExampleGroup
 
@@ -24,7 +22,6 @@ Private bPending As Boolean
 '========================================================================================================================================'
 
 Private Sub Class_Initialize()
-    Set colExamples = New Collection
     bPending = True
 End Sub
 Private Sub Class_Terminate()
@@ -33,7 +30,6 @@ Private Sub Class_Terminate()
         Set clsSuite = Nothing
     End If
     Set clsParent = Nothing
-    Set colExamples = Nothing
 End Sub
 
 Friend Property Get Description() As String
@@ -44,7 +40,9 @@ Friend Property Let Description(sValue As String)
 End Property
 Friend Property Get CompleteDescription() As String
     If Len(sDescription) > 0 Then
-        If Len(sParentDescription) = 0 Or AscW(sDescription) = 35 Or AscW(sDescription) = 46 Then '"#" Or "."
+        If Len(sParentDescription) = 0 Then
+            CompleteDescription = sDescription
+        ElseIf AscW(sDescription) = 35 Or AscW(sDescription) = 46 Then '"#" Or "."
             CompleteDescription = sParentDescription & sDescription
         Else
             CompleteDescription = sParentDescription & sSpace & sDescription
@@ -85,7 +83,7 @@ End Property
 
 '========================================================================================================================================'
 
-Public Function Context(ByVal Description As String) As VBASpecExampleGroup
+Public Function Context(Optional ByVal Description As String) As VBASpecExampleGroup
     Set Context = New VBASpecExampleGroup
     With Context
         .Description = Description
@@ -95,7 +93,7 @@ Public Function Context(ByVal Description As String) As VBASpecExampleGroup
     bPending = False
     If Not clsSuite Is Nothing Then clsSuite.CreateExampleGroup Context
 End Function
-Public Function Describe(ByVal Description As String) As VBASpecExampleGroup
+Public Function Describe(Optional ByVal Description As String) As VBASpecExampleGroup
     Set Describe = New VBASpecExampleGroup
     With Describe
         .Description = Description
@@ -106,7 +104,7 @@ Public Function Describe(ByVal Description As String) As VBASpecExampleGroup
     If Not clsSuite Is Nothing Then clsSuite.CreateExampleGroup Describe
 End Function
 
-Public Function It(ByVal Description As String) As VBASpecExample
+Public Function It(Optional ByVal Description As String) As VBASpecExample
     Set It = New VBASpecExample
     With It
         .Description = Description
@@ -141,9 +139,9 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
         End With
         
         With .Describe("#Suite")
-            With .It("Always return the original #Suite")
+            With .It("Always returns the original #Suite")
                 .Expect(oSuite.Describe("").Suite).ToBe oSuite
-                .Expect(oSuite.Describe("").Context("").Suite).ToBe oSuite
+                .Expect(oSuite.Describe("").Context.Suite).ToBe oSuite
             End With
         End With
         
@@ -193,6 +191,9 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
             With .It("sets new ExampleGroup's description")
                 .Expect(subject.Context("New Description").Description).ToEqual "New Description"
             End With
+            With .It("works without a description")
+                .Expect(subject.Context.Description).ToBeEmpty
+            End With
         End With
         
         With .Describe(".Describe(Description)")
@@ -208,6 +209,9 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
             With .It("sets new ExampleGroup's description")
                 .Expect(subject.Describe("New Description").Description).ToEqual "New Description"
             End With
+            With .It("works without a description")
+                .Expect(subject.Describe.Description).ToBeEmpty
+            End With
         End With
         
         With .Describe(".It(Description)")
@@ -221,6 +225,9 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
             End With
             With .It("sets new Example's description")
                 .Expect(subject.It("New Description").Description).ToEqual "New Description"
+            End With
+            With .It("works without a description")
+                .Expect(subject.It.Description).ToBeEmpty
             End With
         End With
     End With

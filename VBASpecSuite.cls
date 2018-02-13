@@ -145,9 +145,11 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
         
         With .Describe("#Count([Filter])")
             Set subject = SilentVBASpecSuite
-            subject.Describe("").It("passes").Expect(True).ToBeTrue
-            subject.Describe("").It("passes").Expect(False).ToBeFalse
-            subject.Describe("").It("fails").Expect(True).ToBeFalse
+            With subject.Describe("")
+                .It("passes").Expect(True).ToBeTrue
+                .It("passes").Expect(False).ToBeFalse
+                .It("fails").Expect(True).ToBeFalse
+            End With
             
             With .Context("without any Filter")
                 With .It("returns the total number of examples")
@@ -164,32 +166,30 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
         End With
         
         With .Describe("#Result")
-            Set subject = SilentVBASpecSuite
-            
             With .Context("if there is no expectations")
+                Set subject = SilentVBASpecSuite
+                
                 With .It("defaults to -Pending-")
                     .Expect(subject.Result).ToEqual eVBASpecResult.Pending
                 End With
             End With
-            With .Context("if all expectations passes")
+            With .Context("if all examples passes")
                 Set subject = SilentVBASpecSuite
-                With subject.Describe("a")
-                    With .It("b")
-                        .Expect(True).ToBeTrue
-                    End With
-                    With .It("c")
-                        .Expect(False).ToBeFalse
-                    End With
+                With subject.Describe("")
+                    .It.Expect(True).ToBeTrue
+                    .It.Expect(False).ToBeFalse
                 End With
                 
                 With .It("returns -Passed-")
                     .Expect(subject.Result).ToEqual eVBASpecResult.Passed
                 End With
             End With
-            With .Context("if any expectation fails")
+            With .Context("if any examples fails")
                 Set subject = SilentVBASpecSuite
-                subject.Describe("").It("").Expect(True).ToBeTrue
-                subject.Describe("").It("").Expect(True).ToBeFalse
+                With subject.Describe("")
+                    .It.Expect(True).ToBeTrue
+                    .It.Expect(True).ToBeFalse
+                End With
                 
                 With .It("returns -Failed-")
                     .Expect(subject.Result).ToEqual eVBASpecResult.Failed
