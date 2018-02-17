@@ -159,6 +159,18 @@ End Function
 
 '========================================================================================================================================'
 
+Public Function ToBeZero() As VBASpecExpectation
+    Set ToBeZero = VerifyActual("IsZero", 0, " to be zero")
+End Function
+Public Function ToNotBeZero() As VBASpecExpectation
+    Set ToNotBeZero = VerifyActual("IsZero", 0, " to not be zero", Inverse:=True)
+End Function
+Public Function IsZero(Actual As Variant, Optional Expected As Variant) As Boolean
+    IsZero = IsEqual(Actual, 0)
+End Function
+
+'========================================================================================================================================'
+
 Public Function ToBeFalsy() As VBASpecExpectation
     Set ToBeFalsy = VerifyActual("IsFalsy", False, " to evaluate to #{expected}")
 End Function
@@ -589,6 +601,14 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                 .Expect(Empty).ToNotBeNothing
                 .Expect(Null).ToNotBeNothing
                 .Expect().ToNotBeNothing
+            End With
+        End With
+        With .Describe(".ToBeZero/.ToNotBeZero")
+            With .It("passes if Actual equals 0")
+                .Expect(0).ToBeZero
+                .Expect(0#).ToBeZero
+                .Expect("0").ToNotBeZero
+                .Expect(0.000000000000001).ToNotBeZero
             End With
         End With
         
