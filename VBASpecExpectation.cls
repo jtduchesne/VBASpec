@@ -317,8 +317,52 @@ End Function
 
 '========================================================================================================================================'
 
+Public Function ToBeginWith(Expected As Variant) As VBASpecExpectation
+    Set ToBeginWith = VerifyActual("BeginsWith", Expected, " to begin with ")
+End Function
+Public Function ToNotBeginWith(Expected As Variant) As VBASpecExpectation
+    Set ToNotBeginWith = VerifyActual("BeginsWith", Expected, " to not begin with ", Inverse:=True)
+End Function
+Public Function BeginsWith(Actual As Variant, Expected As Variant) As Boolean
+    If IsString(Actual) Then
+        BeginsWith = (StrComp(Left(Actual, Len(CStr(Expected))), Expected, vbTextCompare) = 0)
+    ElseIf IsEnumerable(Actual) Then
+        If TypeOf Actual Is Collection Then
+            BeginsWith = IsLike(Actual.Item(1), Expected)
+        Else
+            BeginsWith = IsLike(Actual(LBound(Actual)), Expected)
+        End If
+    Else
+        BeginsWith = False
+    End If
+End Function
+
+'========================================================================================================================================'
+
+Public Function ToEndWith(Expected As Variant) As VBASpecExpectation
+    Set ToEndWith = VerifyActual("EndsWith", Expected, " to end with ")
+End Function
+Public Function ToNotEndWith(Expected As Variant) As VBASpecExpectation
+    Set ToNotEndWith = VerifyActual("EndsWith", Expected, " to not end with ", Inverse:=True)
+End Function
+Public Function EndsWith(Actual As Variant, Expected As Variant) As Boolean
+    If IsString(Actual) Then
+        EndsWith = (StrComp(Right(Actual, Len(CStr(Expected))), Expected, vbTextCompare) = 0)
+    ElseIf IsEnumerable(Actual) Then
+        If TypeOf Actual Is Collection Then
+            EndsWith = IsLike(Actual.Item(Actual.Count), Expected)
+        Else
+            EndsWith = IsLike(Actual(UBound(Actual)), Expected)
+        End If
+    Else
+        EndsWith = False
+    End If
+End Function
+
+'========================================================================================================================================'
+
 Private Function IsLike(Var1 As Variant, Var2 As Variant) As Boolean
-    If IsObject(Var1) Then
+    If IsObject(Var1) Or IsObject(Var2) Then
         IsLike = IsSame(Var1, Var2)
     Else
         IsLike = IsEqual(Var1, Var2)
@@ -738,9 +782,14 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
             End With
         End With
         
+        Dim sSubject As String
+        Dim arrSubject As Variant
+        Dim colSubject As Collection
+        
+        Dim colIncluded As New Collection
+        Dim colOther As New Collection
         With .Describe(".ToInclude/.ToNotInclude")
             With .Context("when Actual is a String")
-                Dim sSubject As String
                 sSubject = "a String"
                 
                 With .It("works")
@@ -752,10 +801,7 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                 End With
             End With
             
-            Dim colIncluded As New Collection
-            Dim colOther As New Collection
             With .Context("when Actual is an Array")
-                Dim arrSubject As Variant
                 arrSubject = Array(1, "Two", colIncluded)
                 
                 With .It("works with expressions")
@@ -769,7 +815,7 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                 End With
             End With
             With .Context("when Actual is a Collection")
-                Dim colSubject As New Collection
+                Set colSubject = New Collection
                 colSubject.Add 1
                 colSubject.Add "Two"
                 colSubject.Add colIncluded
@@ -782,6 +828,104 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                 With .It("works with objects")
                     .Expect(colSubject).ToInclude colIncluded
                     .Expect(colSubject).ToNotInclude colOther
+                End With
+            End With
+        End With
+        
+        With .Describe(".ToBeginWith/.ToNotBeginWith")
+            With .Context("when Actual is a String")
+                sSubject = "String"
+                
+                With .It("works")
+                    .Expect(sSubject).ToBeginWith "Str"
+                    .Expect(sSubject).ToNotBeginWith "St_"
+                End With
+                With .It("is not case sensitive")
+                    .Expect(sSubject).ToBeginWith "str"
+                End With
+            End With
+            
+            With .Context("when Actual is an Array")
+                With .It("works with expressions")
+                    arrSubject = Array(1, "Two", colIncluded)
+                    
+                    .Expect(arrSubject).ToBeginWith 1
+                    .Expect(arrSubject).ToNotBeginWith "Two"
+                End With
+                With .It("works with objects")
+                    arrSubject = Array(colIncluded, "Two", 3)
+                    
+                    .Expect(arrSubject).ToBeginWith colIncluded
+                    .Expect(arrSubject).ToNotBeginWith colOther
+                End With
+            End With
+            With .Context("when Actual is a Collection")
+                With .It("works with expressions")
+                    Set colSubject = New Collection
+                    colSubject.Add 1
+                    colSubject.Add "Two"
+                    colSubject.Add colIncluded
+                    
+                    .Expect(colSubject).ToBeginWith 1
+                    .Expect(colSubject).ToNotBeginWith "Two"
+                End With
+                With .It("works with objects")
+                    Set colSubject = New Collection
+                    colSubject.Add colIncluded
+                    colSubject.Add "Two"
+                    colSubject.Add 3
+                    
+                    .Expect(colSubject).ToBeginWith colIncluded
+                    .Expect(colSubject).ToNotBeginWith colOther
+                End With
+            End With
+        End With
+        
+        With .Describe(".ToEndWith/.ToNotEndWith")
+            With .Context("when Actual is a String")
+                sSubject = "String"
+                
+                With .It("works")
+                    .Expect(sSubject).ToEndWith "ing"
+                    .Expect(sSubject).ToNotEndWith "_ng"
+                End With
+                With .It("is not case sensitive")
+                    .Expect(sSubject).ToEndWith "Ing"
+                End With
+            End With
+            
+            With .Context("when Actual is an Array")
+                With .It("works with expressions")
+                    arrSubject = Array(colIncluded, "Two", 3)
+                    
+                    .Expect(arrSubject).ToEndWith 3
+                    .Expect(arrSubject).ToNotEndWith "Two"
+                End With
+                With .It("works with objects")
+                    arrSubject = Array(1, "Two", colIncluded)
+                    
+                    .Expect(arrSubject).ToEndWith colIncluded
+                    .Expect(arrSubject).ToNotEndWith colOther
+                End With
+            End With
+            With .Context("when Actual is a Collection")
+                With .It("works with expressions")
+                    Set colSubject = New Collection
+                    colSubject.Add colIncluded
+                    colSubject.Add "Two"
+                    colSubject.Add 3
+                    
+                    .Expect(colSubject).ToEndWith 3
+                    .Expect(colSubject).ToNotEndWith "Two"
+                End With
+                With .It("works with objects")
+                    Set colSubject = New Collection
+                    colSubject.Add 1
+                    colSubject.Add "Two"
+                    colSubject.Add colIncluded
+                    
+                    .Expect(colSubject).ToEndWith colIncluded
+                    .Expect(colSubject).ToNotEndWith colOther
                 End With
             End With
         End With
