@@ -13,6 +13,7 @@ Implements IVBASpecOutput
 
 Private Const sPending As String = "[-PENDING-] "
 Private Const sFailed As String = " [-FAILED-] "
+Private Const sError As String = "  [-ERROR-] "
 
 Private StartedAt As Date
 Private bRunning As Boolean
@@ -121,7 +122,10 @@ End Sub
 
 Public Sub IVBASpecOutput_EndExample(Example As VBASpecExample)
     UpdateStatus ResultTypeToString(Example.Result)
-    If Example.Pending Then
+    If Err.Number <> 0 Then
+        PrintLine sError & "#" & Err.Number & " " & Err.Description
+        Err.Clear
+    ElseIf Example.Pending Then
         PrintLine sPending & Example.CompleteDescription
     ElseIf Example.Result = Failed Then
         PrintLine sFailed & Example.CompleteDescription
@@ -133,7 +137,10 @@ Public Sub IVBASpecOutput_EndExample(Example As VBASpecExample)
 End Sub
 
 Public Sub IVBASpecOutput_EndExampleGroup(ExampleGroup As VBASpecExampleGroup)
-    If ExampleGroup.Pending Then
+    If Err.Number <> 0 Then
+        PrintLine sError & "#" & Err.Number & " " & Err.Description
+        Err.Clear
+    ElseIf ExampleGroup.Pending Then
         PrintLine ExampleGroup.CompleteDescription & sPending
     End If
 End Sub
