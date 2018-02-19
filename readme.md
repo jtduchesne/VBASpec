@@ -85,6 +85,8 @@ Here is the list of all expectations, along with their negated counterpart:
 .Expect(Actual).ToNotBeEmpty
 .Expect(Actual).ToBeNothing         'Actual Is Nothing
 .Expect(Actual).ToNotBeNothing
+.Expect(Actual).ToBeZero            'Actual is equal to 0
+.Expect(Actual).ToNotBeZero
 ```
 #### Truthyness
 ```vb
@@ -105,8 +107,37 @@ Here is the list of all expectations, along with their negated counterpart:
 ```
 #### Collection/String membership
 ```vb
-.Expect(Actual).ToInclude Expected  'Expected is included in Actual
-                                    '(works with Arrays, Collections and Strings)
+.Expect(Actual).ToInclude Expected      'Expected is included in Actual
+.Expect(Actual).ToNotInclude Expected
+
+.Expect(Actual).ToBeginWith Expected    'Expected is at the beginning of Actual
+.Expect(Actual).ToNotBeginWith Expected
+.Expect(Actual).ToEndWith Expected      'Expected is at the end of Actual
+.Expect(Actual).ToNotEndWith Expected
+                                        '(These all work with Arrays, Collections and Strings)
+```
+#### Expecting errors
+```vb
+On Error Resume Next '<- Really important
+var = 1 / 0          '   The expectation must be placed AFTER the line that cause the error
+.Expect.Error           'Passes when ANY error is raised
+.Expect.Error(11)       'Passes, since 'Division by zero (Error 11)' was raised
+.Expect.Error(12)       'Fails
+On Error Goto 0
+```
+#### Expecting no errors
+```vb
+On Error Resume Next '<- Really important
+var = 1 / 2          '   The expectation must be placed AFTER the line that could cause the error
+.Expect.NoError 'Passes
+var = 1 / 0
+.Expect.NoError 'Fails
+On Error Goto 0
+```
+```vb
+.Expect.NoError.WasRaised   'The function .WasRaised can also be added at the end
+.Expect.Error(11).WasRaised 'Mostly for aesthetic reasons...
+.Expect.Error.WasRaised
 ```
 
 ## Example:
