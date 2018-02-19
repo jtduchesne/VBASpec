@@ -13,6 +13,8 @@ Implements IVBASpecOutput
 
 Private Const sPending As String = "[-PENDING-] "
 Private Const sFailed As String = " [-FAILED-] "
+Private Const sError As String = "  [-ERROR-] "
+
 Private Const sExamplePrefix As String = "it "
 
 Private frmOutput As VBASpecForm
@@ -140,7 +142,10 @@ End Sub
 
 Public Sub IVBASpecOutput_EndExample(Example As VBASpecExample)
     PrintLine ResultTypeToString(Example.Result) & sExamplePrefix & Example.Description, Example.Level
-    If Example.Pending Then
+    If Err.Number <> 0 Then
+        PrintLater sError & "#" & Err.Number & " " & Err.Description, Example.Level
+        Err.Clear
+    ElseIf Example.Pending Then
         PrintLater sPending & Example.CompleteDescription, Example.Level
     ElseIf Example.Result = Failed Then
         PrintLater sFailed & Example.CompleteDescription, Example.Level
@@ -152,6 +157,10 @@ Public Sub IVBASpecOutput_EndExample(Example As VBASpecExample)
 End Sub
 
 Public Sub IVBASpecOutput_EndExampleGroup(ExampleGroup As VBASpecExampleGroup)
+    If Err.Number <> 0 Then
+        PrintLater sError & "#" & Err.Number & " " & Err.Description, ExampleGroup.Level
+        Err.Clear
+    End If
     If Len(sBuffer) Then
         PrintLine sBuffer
         PrintLine
