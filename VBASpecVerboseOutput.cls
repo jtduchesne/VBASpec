@@ -2,7 +2,7 @@ VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
-Attribute VB_Name = "VBASpecFormOutput"
+Attribute VB_Name = "VBASpecVerboseOutput"
 Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
@@ -14,6 +14,8 @@ Implements IVBASpecOutput
 Private Const sPending As String = "[-PENDING-] "
 Private Const sFailed As String = " [-FAILED-] "
 Private Const sError As String = "  [-ERROR-] "
+
+Private Const sExamplePrefix As String = "it "
 
 Private frmOutput As VBASpecForm
 
@@ -39,11 +41,11 @@ End Sub
 Private Function ResultTypeToString(ResultType As eVBASpecResult) As String
     Select Case ResultType
     Case Passed
-        ResultTypeToString = "-"
+        ResultTypeToString = "- "
     Case Failed
-        ResultTypeToString = "X"
+        ResultTypeToString = "X "
     Case Pending
-        ResultTypeToString = "P"
+        ResultTypeToString = "**"
     End Select
 End Function
 
@@ -68,17 +70,6 @@ Private Sub AppendLineTo(ByRef sBuffer As String, sLine As String, iIndent As In
     End If
 End Sub
 
-Private Sub StartStatus(Optional sLabel As String = vbNullString)
-    PrintLine sLabel & " ["
-End Sub
-Private Sub StopStatus()
-    UpdateStatus "]"
-    PrintBuffer
-End Sub
-Private Sub UpdateStatus(sValue As String)
-    sOutput = sOutput & sValue
-End Sub
-
 Private Sub PrintLine(Optional sLine As String = vbNullString, Optional iIndent As Integer = 0)
     AppendLineTo sOutput, sLine, iIndent
     Update
@@ -86,18 +77,6 @@ End Sub
 Private Sub PrintLater(Optional sLine As String = vbNullString, Optional iIndent As Integer = 0)
     AppendLineTo sBuffer, sLine, iIndent
 End Sub
-Private Sub PrintBuffer(Optional iIndent As Integer = 0)
-    If Len(sBuffer) Then
-        If iIndent > 0 Then
-            PrintLine Space(iIndent * 2) & Replace$(sBuffer, vbNewLine, vbNewLine + Space(iIndent * 2), , Len(sBuffer) - 1, vbBinaryCompare), iIndent
-        Else
-            PrintLine sBuffer, iIndent
-        End If
-        PrintLine
-        sBuffer = vbNullString
-    End If
-End Sub
-
 Private Sub PrintSummary(Suite As VBASpecSuite)
     Dim iTotal As Integer
     Dim iPassed As Integer
@@ -146,50 +125,53 @@ Public Sub IVBASpecOutput_BeginSuite(FirstExampleGroup As VBASpecExampleGroup)
         bRunning = True
         StartedAt = Timer
         
-        sOutput = "Started at " & Now & vbNewLine
+        sOutput = "Started at " & Now
         
         frmOutput.Show vbModeless
-    Else
-        StopStatus
     End If
-    StartStatus FirstExampleGroup.Description
+    PrintLine
+    PrintLine FirstExampleGroup.Description
 End Sub
 
 Public Sub IVBASpecOutput_BeginExampleGroup(ExampleGroup As VBASpecExampleGroup)
+    PrintLine ExampleGroup.Description, ExampleGroup.Level
 End Sub
 
 Public Sub IVBASpecOutput_BeginExample(Example As VBASpecExample)
 End Sub
 
 Public Sub IVBASpecOutput_EndExample(Example As VBASpecExample)
-    UpdateStatus ResultTypeToString(Example.Result)
+    PrintLine ResultTypeToString(Example.Result) & sExamplePrefix & Example.Description, Example.Level
     If Err.Number <> 0 Then
-        PrintLater sError & "#" & Err.Number & " " & Err.Description, 1
+        PrintLater sError & "#" & Err.Number & " " & Err.Description, Example.Level
         Err.Clear
     ElseIf Example.Pending Then
-        PrintLater sPending & Example.CompleteDescription, 1
+        PrintLater sPending & Example.CompleteDescription, Example.Level
     ElseIf Example.Result = Failed Then
-        PrintLater sFailed & Example.CompleteDescription, 1
+        PrintLater sFailed & Example.CompleteDescription, Example.Level
         Dim Expectation As VBASpecExpectation
         For Each Expectation In Example.Expectations(Failed)
-            PrintLater Expectation.FailureMessage, 8
+            PrintLater Expectation.FailureMessage, Example.Level + 8
         Next Expectation
     End If
 End Sub
 
 Public Sub IVBASpecOutput_EndExampleGroup(ExampleGroup As VBASpecExampleGroup)
     If Err.Number <> 0 Then
-        PrintLater sError & "#" & Err.Number & " " & Err.Description, 2
+        PrintLater sError & "#" & Err.Number & " " & Err.Description, ExampleGroup.Level
         Err.Clear
+    End If
+    If Len(sBuffer) Then
+        PrintLine sBuffer
+        PrintLine
+        sBuffer = vbNullString
     End If
 End Sub
 
 Public Sub IVBASpecOutput_EndSuite(Suite As VBASpecSuite)
-    StopStatus
     PrintSummary Suite
     bRunning = False
     Do Until Me.IVBASpecOutput_Done
         DoEvents
     Loop
 End Sub
-

@@ -32,7 +32,7 @@ Private iLevel As Integer
 
 Private Sub Class_Initialize()
     Set colExamples = New Collection
-    Set oOutput = New VBASpecImmediateOutput
+    Set oOutput = New VBASpecFormOutput
 End Sub
 Private Sub Class_Terminate()
     Me.FinishSuite
@@ -51,11 +51,18 @@ Friend Property Let Silent(bValue As Boolean)
     If bValue Then Set oOutput = New VBASpecNullOutput
 End Property
 
+Public Property Get Immediate() As Boolean
+    Immediate = (TypeOf oOutput Is VBASpecImmediateOutput)
+End Property
+Public Property Let Immediate(bValue As Boolean)
+    If bValue Then Set oOutput = New VBASpecImmediateOutput
+End Property
+
 Public Property Get Verbose() As Boolean
-    Silent = (TypeOf oOutput Is VBASpecFormOutput)
+    Verbose = (TypeOf oOutput Is VBASpecVerboseOutput)
 End Property
 Public Property Let Verbose(bValue As Boolean)
-    If bValue Then Set oOutput = New VBASpecFormOutput
+    If bValue Then Set oOutput = New VBASpecVerboseOutput
 End Property
 
 '========================================================================================================================================'
