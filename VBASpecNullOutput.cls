@@ -21,16 +21,12 @@ End Property
 Public Property Let IVBASpecOutput_Done(bValue As Boolean)
 End Property
 
-Public Sub IVBASpecOutput_BeginSuite(FirstExampleGroup As VBASpecExampleGroup)
+Public Sub IVBASpecOutput_BeginSuite(FirstExampleGroup As VBASpecGroup)
 End Sub
-Public Sub IVBASpecOutput_BeginExampleGroup(ExampleGroup As VBASpecExampleGroup)
-End Sub
-Public Sub IVBASpecOutput_BeginExample(Example As VBASpecExample)
+Public Sub IVBASpecOutput_BeginGroup(ExampleGroup As VBASpecGroup)
 End Sub
 
 Public Sub IVBASpecOutput_EndSuite(Suite As VBASpecSuite)
 End Sub
-Public Sub IVBASpecOutput_EndExampleGroup(ExampleGroup As VBASpecExampleGroup)
-End Sub
-Public Sub IVBASpecOutput_EndExample(Example As VBASpecExample)
+Public Sub IVBASpecOutput_EndGroup(ExampleGroup As VBASpecGroup)
 End Sub

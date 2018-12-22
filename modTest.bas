@@ -5,14 +5,12 @@ Option Explicit
 Sub Test()
     Dim Suite As VBASpecSuite
     Set Suite = New VBASpecSuite
+    Suite.Immediate = True
     
     With New VBASpecExpectation
         .UnitTest Suite
     End With
-    With New VBASpecExample
-        .UnitTest Suite
-    End With
-    With New VBASpecExampleGroup
+    With New VBASpecGroup
         .UnitTest Suite
     End With
     With New VBASpecSuite

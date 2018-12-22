@@ -20,8 +20,6 @@ End Enum
 
 Private oOutput As IVBASpecOutput
 
-Private colExamples As Collection
-
 Private iPassedCount As Integer
 Private iFailedCount As Integer
 Private iPendingCount As Integer
@@ -31,13 +29,11 @@ Private iLevel As Integer
 '========================================================================================================================================'
 
 Private Sub Class_Initialize()
-    Set colExamples = New Collection
     Set oOutput = New VBASpecFormOutput
 End Sub
 Private Sub Class_Terminate()
     Me.FinishSuite
     Set oOutput = Nothing
-    Set colExamples = Nothing
 End Sub
 
 Friend Property Get Level() As Integer
@@ -88,8 +84,8 @@ End Property
 
 '========================================================================================================================================'
 
-Public Function Describe(ByVal Description As String) As VBASpecExampleGroup
-    Set Describe = New VBASpecExampleGroup
+Public Function Describe(ByVal Description As String) As VBASpecGroup
+    Set Describe = New VBASpecGroup
     With Describe
         .Description = Description
         Set .Parent = Nothing
@@ -107,32 +103,26 @@ Private Sub DecreaseLevel()
     iLevel = iLevel - 1
 End Sub
 
-Friend Sub CreateSuite(FirstExampleGroup As VBASpecExampleGroup)
-    oOutput.BeginSuite FirstExampleGroup
+Friend Sub CreateSuite(FirstGroup As VBASpecGroup)
+    oOutput.BeginSuite FirstGroup
     IncreaseLevel
 End Sub
-Friend Sub CreateExampleGroup(ExampleGroup As VBASpecExampleGroup)
-    oOutput.BeginExampleGroup ExampleGroup
-    IncreaseLevel
-End Sub
-Friend Sub CreateExample(Example As VBASpecExample)
-    oOutput.BeginExample Example
+Friend Sub CreateGroup(Group As VBASpecGroup)
+    oOutput.BeginGroup Group
     IncreaseLevel
 End Sub
 
-Friend Sub FinishExample(Example As VBASpecExample)
+Friend Sub FinishGroup(Group As VBASpecGroup)
     DecreaseLevel
-    Select Case Example.Result
-    Case Passed: iPassedCount = iPassedCount + 1
-    Case Failed: iFailedCount = iFailedCount + 1
-    Case Else
-        iPendingCount = iPendingCount + 1
-    End Select
-    oOutput.EndExample Example
-End Sub
-Friend Sub FinishExampleGroup(ExampleGroup As VBASpecExampleGroup)
-    DecreaseLevel
-    oOutput.EndExampleGroup ExampleGroup
+    If Group.Expectations.Count > 0 Then
+        Select Case Group.Result
+        Case Passed: iPassedCount = iPassedCount + 1
+        Case Failed: iFailedCount = iFailedCount + 1
+        Case Else
+            iPendingCount = iPendingCount + 1
+        End Select
+    End If
+    oOutput.EndGroup Group
 End Sub
 Friend Sub FinishSuite()
     DecreaseLevel

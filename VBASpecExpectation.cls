@@ -14,8 +14,8 @@ Private Const ACTUAL_INTERPOLATION As String = "#{actual}"
 Private Const ACTUALTYPE_INTERPOLATION As String = "#{actualtype}"
 Private Const EXPECTED_INTERPOLATION As String = "#{expected}"
 
-Private Const FAILURE_MSG As String = "Expected #{expected}, got #{actual}."
-Private Const FAILURE_MSG_NEGATED As String = "Not expected to be #{actual}."
+Private Const FAILURE_MSG As String = "Expected #{expected}, got #{actual}"
+Private Const FAILURE_MSG_NEGATED As String = "Not expected to be #{actual}"
 
 Private vActual As Variant
 Private vExpected As Variant
@@ -29,7 +29,7 @@ Private bErrorChecked As Boolean
 
 '========================================================================================================================================'
 
-Friend Property Get Actual() As Variant
+Friend Property Get Actual()
     If IsObject(vActual) Then
         Set Actual = vActual
     Else
@@ -43,7 +43,7 @@ Friend Property Set Actual(Value As Variant)
     Set vActual = Value
 End Property
 
-Friend Property Get Expected() As Variant
+Friend Property Get Expected()
     If IsObject(vExpected) Then
         Set Expected = vExpected
     Else
@@ -73,6 +73,20 @@ Friend Property Get FailureMessage() As String
         End If
     End If
 End Property
+
+Friend Function Fail(sMessage As String) As VBASpecExpectation
+    bPassed = False
+    bFailed = True
+    sFailureMessage = sMessage
+    
+    Set Fail = Me
+End Function
+
+'========================================================================================================================================'
+
+Public Function AndAlso() As VBASpecExpectation
+    Set AndAlso = Me
+End Function
 
 '========================================================================================================================================'
 
@@ -111,16 +125,16 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToBeA(Expected As Variant) As VBASpecExpectation
-    Set ToBeA = VerifyActual("IsA", Expected, "Expected #{actual} to be a " & CStr(Expected) & ", but is a #{actualtype}.")
+    Set ToBeA = VerifyActual("IsA", Expected, "Expected #{actual} to be a " & CStr(Expected) & ", but is a #{actualtype}")
 End Function
 Public Function ToBeAn(Expected As Variant) As VBASpecExpectation
-    Set ToBeAn = VerifyActual("IsA", Expected, "Expected #{actual} to be an " & CStr(Expected) & ", but is a #{actualtype}.")
+    Set ToBeAn = VerifyActual("IsA", Expected, "Expected #{actual} to be an " & CStr(Expected) & ", but is a #{actualtype}")
 End Function
 Public Function ToNotBeA(Expected As Variant) As VBASpecExpectation
-    Set ToNotBeA = VerifyActual("IsA", Expected, "Expected #{actual} not to be a " & CStr(Expected) & ", but it is.", Inverse:=True)
+    Set ToNotBeA = VerifyActual("IsA", Expected, "Expected #{actual} not to be a " & CStr(Expected) & ", but it is", Inverse:=True)
 End Function
 Public Function ToNotBeAn(Expected As Variant) As VBASpecExpectation
-    Set ToNotBeAn = VerifyActual("IsA", Expected, "Expected #{actual} not to be an " & CStr(Expected) & ", but it is.", Inverse:=True)
+    Set ToNotBeAn = VerifyActual("IsA", Expected, "Expected #{actual} not to be an " & CStr(Expected) & ", but it is", Inverse:=True)
 End Function
 Public Function IsA(Actual As Variant, Expected As Variant) As Boolean
     IsA = (TypeName(Actual) = Expected)
@@ -129,7 +143,7 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToBeEmpty() As VBASpecExpectation
-    Set ToBeEmpty = VerifyActual("IsEmpty", Empty, "#{actualtype} expected to be empty.")
+    Set ToBeEmpty = VerifyActual("IsEmpty", Empty, "#{actualtype} expected to be empty")
 End Function
 Public Function ToNotBeEmpty() As VBASpecExpectation
    Set ToNotBeEmpty = VerifyActual("IsEmpty", Empty, Inverse:=True)
@@ -173,7 +187,7 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToBeFalsy() As VBASpecExpectation
-    Set ToBeFalsy = VerifyActual("IsFalsy", False, "Expected #{actual} to evaluate to #{expected}.")
+    Set ToBeFalsy = VerifyActual("IsFalsy", False, "Expected #{actual} to evaluate to #{expected}")
 End Function
 Public Function IsFalsy(Actual As Variant, Optional Expected As Variant) As Boolean
     IsFalsy = IIf(Actual, False, True)
@@ -195,7 +209,7 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToBeTruthy() As VBASpecExpectation
-    Set ToBeTruthy = VerifyActual("IsTruthy", True, "Expected #{actual} to evaluate to #{expected}.")
+    Set ToBeTruthy = VerifyActual("IsTruthy", True, "Expected #{actual} to evaluate to #{expected}")
 End Function
 Public Function IsTruthy(Actual As Variant, Optional Expected As Variant) As Boolean
     IsTruthy = IIf(Actual, True, False)
@@ -217,10 +231,10 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToBeLessThan(Expected As Variant) As VBASpecExpectation
-    Set ToBeLessThan = VerifyActual("IsLT", Expected, "Expected #{actual} to be less than #{expected}.")
+    Set ToBeLessThan = VerifyActual("IsLT", Expected, "Expected #{actual} to be less than #{expected}")
 End Function
 Public Function ToBeLT(Expected As Variant) As VBASpecExpectation
-    Set ToBeLT = VerifyActual("IsLT", Expected, "Expected #{actual} to be < #{expected}.")
+    Set ToBeLT = VerifyActual("IsLT", Expected, "Expected #{actual} to be < #{expected}")
 End Function
 Public Function IsLT(Actual As Variant, Expected As Variant) As Boolean
     IsLT = (Actual < Expected)
@@ -229,10 +243,10 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToBeLessThanOrEqualTo(Expected As Variant) As VBASpecExpectation
-    Set ToBeLessThanOrEqualTo = VerifyActual("IsLTE", Expected, "Expected #{actual} to be less than or equal to #{expected}.")
+    Set ToBeLessThanOrEqualTo = VerifyActual("IsLTE", Expected, "Expected #{actual} to be less than or equal to #{expected}")
 End Function
 Public Function ToBeLTE(Expected As Variant) As VBASpecExpectation
-    Set ToBeLTE = VerifyActual("IsLTE", Expected, "Expected #{actual} to be <= #{expected}.")
+    Set ToBeLTE = VerifyActual("IsLTE", Expected, "Expected #{actual} to be <= #{expected}")
 End Function
 Public Function IsLTE(Actual As Variant, Expected As Variant) As Boolean
     IsLTE = (Actual <= Expected)
@@ -241,10 +255,10 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToBeGreaterThan(Expected As Variant) As VBASpecExpectation
-    Set ToBeGreaterThan = VerifyActual("IsGT", Expected, "Expected #{actual} to be greater than #{expected}.")
+    Set ToBeGreaterThan = VerifyActual("IsGT", Expected, "Expected #{actual} to be greater than #{expected}")
 End Function
 Public Function ToBeGT(Expected As Variant) As VBASpecExpectation
-    Set ToBeGT = VerifyActual("IsGT", Expected, "Expected #{actual} to be > #{expected}.")
+    Set ToBeGT = VerifyActual("IsGT", Expected, "Expected #{actual} to be > #{expected}")
 End Function
 Public Function IsGT(Actual As Variant, Expected As Variant) As Boolean
     IsGT = (Actual > Expected)
@@ -253,10 +267,10 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToBeGreaterThanOrEqualTo(Expected As Variant) As VBASpecExpectation
-    Set ToBeGreaterThanOrEqualTo = VerifyActual("IsGTE", Expected, "Expected #{actual} to be greater than or equal to #{expected}.")
+    Set ToBeGreaterThanOrEqualTo = VerifyActual("IsGTE", Expected, "Expected #{actual} to be greater than or equal to #{expected}")
 End Function
 Public Function ToBeGTE(Expected As Variant) As VBASpecExpectation
-    Set ToBeGTE = VerifyActual("IsGTE", Expected, "Expected #{actual} to be >= #{expected}.")
+    Set ToBeGTE = VerifyActual("IsGTE", Expected, "Expected #{actual} to be >= #{expected}")
 End Function
 Public Function IsGTE(Actual As Variant, Expected As Variant) As Boolean
     IsGTE = (Actual >= Expected)
@@ -267,12 +281,12 @@ End Function
 Public Function ToBeCloseTo(Expected As Variant, Optional SignificantFigures As Integer = 2) As VBASpecExpectation
     iSignificantFigures = SignificantFigures
     Set ToBeCloseTo = VerifyActual("IsCloseTo", Expected, "Expected #{actual} to be close to #{expected} (" & _
-                                                          SignificantFigures & " significant figures).")
+                                                          SignificantFigures & " significant figures)")
 End Function
 Public Function ToNotBeCloseTo(Expected As Variant, Optional SignificantFigures As Integer = 2) As VBASpecExpectation
     iSignificantFigures = SignificantFigures
     Set ToNotBeCloseTo = VerifyActual("IsCloseTo", Expected, "Expected #{actual} not to be close to #{expected} (" & _
-                                                             SignificantFigures & " significant figures).", Inverse:=True)
+                                                             SignificantFigures & " significant figures)", Inverse:=True)
 End Function
 Public Function IsCloseTo(Actual As Variant, Expected As Variant, Optional SignificantFigures As Integer = -1) As Boolean
     Dim sActual As String
@@ -287,10 +301,10 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToInclude(Expected As Variant) As VBASpecExpectation
-    Set ToInclude = VerifyActual("Includes", Expected, "Expected #{actual} to include #{expected}.")
+    Set ToInclude = VerifyActual("Includes", Expected, "Expected #{actual} to include #{expected}")
 End Function
 Public Function ToNotInclude(Expected As Variant) As VBASpecExpectation
-    Set ToNotInclude = VerifyActual("Includes", Expected, "Expected #{actual} not to include #{expected}.", Inverse:=True)
+    Set ToNotInclude = VerifyActual("Includes", Expected, "Expected #{actual} not to include #{expected}", Inverse:=True)
 End Function
 Public Function Includes(Actual As Variant, Expected As Variant) As Boolean
     If IsString(Actual) Then
@@ -320,10 +334,10 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToBeginWith(Expected As Variant) As VBASpecExpectation
-    Set ToBeginWith = VerifyActual("BeginsWith", Expected, "Expected #{actual} to begin with #{expected}.")
+    Set ToBeginWith = VerifyActual("BeginsWith", Expected, "Expected #{actual} to begin with #{expected}")
 End Function
 Public Function ToNotBeginWith(Expected As Variant) As VBASpecExpectation
-    Set ToNotBeginWith = VerifyActual("BeginsWith", Expected, "Expected #{actual} not to begin with #{expected}.", Inverse:=True)
+    Set ToNotBeginWith = VerifyActual("BeginsWith", Expected, "Expected #{actual} not to begin with #{expected}", Inverse:=True)
 End Function
 Public Function BeginsWith(Actual As Variant, Expected As Variant) As Boolean
     If IsString(Actual) Then
@@ -342,10 +356,10 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToEndWith(Expected As Variant) As VBASpecExpectation
-    Set ToEndWith = VerifyActual("EndsWith", Expected, "Expected #{actual} to end with #{expected}.")
+    Set ToEndWith = VerifyActual("EndsWith", Expected, "Expected #{actual} to end with #{expected}")
 End Function
 Public Function ToNotEndWith(Expected As Variant) As VBASpecExpectation
-    Set ToNotEndWith = VerifyActual("EndsWith", Expected, "Expected #{actual} not to end with #{expected}.", Inverse:=True)
+    Set ToNotEndWith = VerifyActual("EndsWith", Expected, "Expected #{actual} not to end with #{expected}", Inverse:=True)
 End Function
 Public Function EndsWith(Actual As Variant, Expected As Variant) As Boolean
     If IsString(Actual) Then
@@ -371,34 +385,6 @@ Private Function IsLike(Var1 As Variant, Var2 As Variant) As Boolean
     End If
 End Function
 
-Private Function IsBoolean(Value As Variant) As Boolean
-    IsBoolean = (VarType(Value) = vbBoolean)
-End Function
-Private Function IsString(Value As Variant) As Boolean
-    IsString = (VarType(Value) = vbString)
-End Function
-
-Private Function IsEnumerable(Value As Variant) As Boolean
-    Select Case VarType(Value)
-    Case vbArray To vbArray + vbByte
-        IsEnumerable = True
-    Case vbObject
-        If TypeOf Value Is Collection Then
-            IsEnumerable = True
-        End If
-    End Select
-End Function
-Private Function CountEnumerable(Value As Variant) As Long
-    Select Case VarType(Value)
-    Case vbArray To vbArray + vbByte
-        CountEnumerable = UBound(Value) - LBound(Value)
-    Case vbObject
-        If TypeOf Value Is Collection Then
-            CountEnumerable = Value.Count
-        End If
-    End Select
-End Function
-
 '========================================================================================================================================'
 
 Public Function NoError() As VBASpecExpectation
@@ -409,9 +395,9 @@ End Function
 Public Function Error(Optional Expected As Variant) As VBASpecExpectation
     Me.Actual = Err.Number
     If IsMissing(Expected) Then
-        Set Error = VerifyActual("IsError", Expected, "Expected an error, got none.")
+        Set Error = VerifyActual("IsError", Expected, "Expected an error, got none")
     Else
-        Set Error = VerifyActual("IsError", Expected, "Expected error ##{expected}, got ##{actual}.")
+        Set Error = VerifyActual("IsError", Expected, "Expected error ##{expected}, got ##{actual}")
     End If
     Err.Clear
 End Function
@@ -435,82 +421,49 @@ End Function
 
 Private Function VerifyActual(ProcName As String, Expected As Variant, Optional sMessage As String = vbNullString, _
                                                                        Optional Inverse As Boolean = False) As VBASpecExpectation
-    If IsObject(Expected) Then
-        Set Me.Expected = Expected
-    Else
-        Me.Expected = Expected
-    End If
-    
-    If Inverse Then
-        bFailed = CallByName(Me, ProcName, VbMethod, Me.Actual, Expected)
-        bPassed = Not bFailed
-    Else
-        bPassed = CallByName(Me, ProcName, VbMethod, Me.Actual, Expected)
-        bFailed = Not bPassed
-    End If
-    
-    If bFailed Then
-        If Len(sMessage) = 0 Then sMessage = IIf(Inverse, FAILURE_MSG_NEGATED, FAILURE_MSG)
-        
-        Dim bShowAddress As Boolean
-        bShowAddress = (AnyValueAsText(Me.Actual) = AnyValueAsText(Expected))
-        
-        Dim bShowType As Boolean
-        Select Case VarType(Expected)
-        Case vbBoolean: bShowType = (CBool(Me.Actual) = CBool(Expected))
-        Case vbInteger: bShowType = (CInt(Me.Actual) = CInt(Expected))
-        Case vbDouble:  bShowType = (CDbl(Me.Actual) = CDbl(Expected))
-        Case Else:      bShowType = (CStr(Me.Actual) = CStr(Expected))
-        End Select
-        
-        If InStr(1, sMessage, ACTUALTYPE_INTERPOLATION, vbBinaryCompare) > 0 Then
-            sMessage = Replace$(sMessage, ACTUALTYPE_INTERPOLATION, AnyValueAsText(Me.Actual, bShowAddress, True), Compare:=vbBinaryCompare)
+    If Not bFailed Then
+        If IsObject(Expected) Then
+            Set Me.Expected = Expected
+        Else
+            Me.Expected = Expected
         End If
-        If InStr(1, sMessage, ACTUAL_INTERPOLATION, vbBinaryCompare) > 0 Then
-            sMessage = Replace$(sMessage, ACTUAL_INTERPOLATION, AnyValueAsText(Me.Actual, bShowAddress, bShowType), Compare:=vbBinaryCompare)
+        
+        If Inverse Then
+            bFailed = CallByName(Me, ProcName, VbMethod, Me.Actual, Expected)
+            bPassed = Not bFailed
+        Else
+            bPassed = CallByName(Me, ProcName, VbMethod, Me.Actual, Expected)
+            bFailed = Not bPassed
         End If
-        If InStr(1, sMessage, EXPECTED_INTERPOLATION, vbBinaryCompare) > 0 Then
-            sMessage = Replace$(sMessage, EXPECTED_INTERPOLATION, AnyValueAsText(Expected, bShowAddress, bShowType), Compare:=vbBinaryCompare)
+        
+        If bFailed Then
+            If Len(sMessage) = 0 Then sMessage = IIf(Inverse, FAILURE_MSG_NEGATED, FAILURE_MSG)
+            
+            Dim bShowAddress As Boolean
+            bShowAddress = (AnyValueAsText(Me.Actual) = AnyValueAsText(Expected))
+            
+            Dim bShowType As Boolean
+            Select Case VarType(Expected)
+            Case vbBoolean: bShowType = (CBool(Me.Actual) = CBool(Expected))
+            Case vbInteger: bShowType = (CInt(Me.Actual) = CInt(Expected))
+            Case vbDouble:  bShowType = (CDbl(Me.Actual) = CDbl(Expected))
+            Case Else:      bShowType = (AnyValueAsText(Me.Actual) = AnyValueAsText(Expected))
+            End Select
+            
+            If InStr(1, sMessage, ACTUALTYPE_INTERPOLATION, vbBinaryCompare) > 0 Then
+                sMessage = Replace$(sMessage, ACTUALTYPE_INTERPOLATION, AnyValueAsText(Me.Actual, bShowAddress, True), Compare:=vbBinaryCompare)
+            End If
+            If InStr(1, sMessage, ACTUAL_INTERPOLATION, vbBinaryCompare) > 0 Then
+                sMessage = Replace$(sMessage, ACTUAL_INTERPOLATION, AnyValueAsText(Me.Actual, bShowAddress, bShowType), Compare:=vbBinaryCompare)
+            End If
+            If InStr(1, sMessage, EXPECTED_INTERPOLATION, vbBinaryCompare) > 0 Then
+                sMessage = Replace$(sMessage, EXPECTED_INTERPOLATION, AnyValueAsText(Expected, bShowAddress, bShowType), Compare:=vbBinaryCompare)
+            End If
+            sFailureMessage = sMessage
         End If
-        sFailureMessage = sMessage
     End If
     
     Set VerifyActual = Me
-End Function
-
-Private Function AnyValueAsText(Value As Variant, Optional bShowAddress As Boolean = False, _
-                                                  Optional bShowType As Boolean = False) As String
-    If VBA.IsMissing(Value) Then
-        AnyValueAsText = "(Missing)"
-    ElseIf VBA.IsObject(Value) Then
-        If Value Is Nothing Then
-            AnyValueAsText = TypeName(Value)
-        Else
-            AnyValueAsText = TypeName(Value)
-            If bShowAddress Then AnyValueAsText = AnyValueAsText & "[" & ObjPtr(Value) & "]"
-        End If
-    ElseIf VBA.IsEmpty(Value) Or VBA.IsNull(Value) Then
-        AnyValueAsText = TypeName(Value)
-    ElseIf IsEnumerable(Value) Then
-        AnyValueAsText = "Array/" & TypeName(Value)
-    Else
-        If VarType(Value) = vbString Then
-            AnyValueAsText = """" & Value & """"
-            If bShowAddress Then AnyValueAsText = AnyValueAsText & "[" & VarPtr(Value) & "]"
-        Else
-            AnyValueAsText = CStr(Value)
-        End If
-        If bShowType Then AnyValueAsText = AnyValueAsText & "(" & TypeName(Value) & ")"
-    End If
-    If IsEnumerable(Value) Then
-        Dim lCount As Long
-        lCount = CountEnumerable(Value)
-        Select Case lCount
-        Case 0:    AnyValueAsText = AnyValueAsText & "(Empty)"
-        Case 1:    AnyValueAsText = AnyValueAsText & "(1 item)"
-        Case Else: AnyValueAsText = AnyValueAsText & "(" & lCount & " items)"
-        End Select
-    End If
 End Function
 
 '========================================================================================================================================'
@@ -1014,6 +967,8 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                 .Expect(Err.Number).ToBeZero
             End With
             With .Describe(".WasRaised")
+                Set subject = New VBASpecExpectation
+                
                 With .Context("when no error was raised")
                     errorTrigger = 1 / 1
                     
@@ -1032,9 +987,9 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
         End With
         
         With .Describe(".Error")
-            Set subject = New VBASpecExpectation
-            
             With .Context("when no number given")
+                Set subject = New VBASpecExpectation
+                
                 With .It("passes if any error was raised")
                     errorTrigger = 1 / 0
                     .Expect(subject.Error.Passed).ToBeTrue
@@ -1045,6 +1000,8 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                 End With
             End With
             With .Context("when a number is given")
+                Set subject = New VBASpecExpectation
+                
                 With .It("passes if the error was raised")
                     errorTrigger = 1 / 0
                     .Expect(subject.Error(11).Passed).ToBeTrue
@@ -1058,6 +1015,7 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                     .Expect(subject.Error(11).Failed).ToBeTrue
                 End With
             End With
+            
             With .It("clears the Err afterward")
                 errorTrigger = 1 / 0
                 subject.Error
@@ -1065,6 +1023,8 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
             End With
             With .Describe(".WasRaised")
                 With .Context("when no error was raised")
+                    Set subject = New VBASpecExpectation
+                    
                     errorTrigger = 1 / 1
                     
                     With .It("returns False")
@@ -1072,6 +1032,8 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                     End With
                 End With
                 With .Context("when any error was raised")
+                    Set subject = New VBASpecExpectation
+                    
                     errorTrigger = 1 / 0
                     
                     With .It("returns True")
@@ -1079,6 +1041,8 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                     End With
                 End With
                 With .Context("when another error was raised")
+                    Set subject = New VBASpecExpectation
+                    
                     errorTrigger = 1 / 0
                     
                     With .It("returns False")

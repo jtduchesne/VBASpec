@@ -49,14 +49,6 @@ Private Function ResultTypeToString(ResultType As eVBASpecResult) As String
     End Select
 End Function
 
-Private Function ElapsedTimeToString(dElapsedTime As Double) As String
-    If dElapsedTime >= 60 Then
-        ElapsedTimeToString = Int(dElapsedTime / 60) & "m" & Right(Strings.Format(dElapsedTime Mod 60, "00.000"), 6)
-    Else
-        ElapsedTimeToString = Strings.Format(dElapsedTime, "#0.000")
-    End If
-End Function
-
 Private Sub Update()
     frmOutput.TextBox.Text = sOutput
     frmOutput.Repaint
@@ -119,8 +111,8 @@ Public Property Let IVBASpecOutput_Done(bValue As Boolean)
     bDone = bValue
 End Property
 
-Public Sub IVBASpecOutput_BeginSuite(FirstExampleGroup As VBASpecExampleGroup)
-    frmOutput.Caption = FirstExampleGroup.Description
+Public Sub IVBASpecOutput_BeginSuite(FirstGroup As VBASpecGroup)
+    frmOutput.Caption = FirstGroup.Description
     If Not bRunning Then
         bRunning = True
         StartedAt = Timer
@@ -130,35 +122,35 @@ Public Sub IVBASpecOutput_BeginSuite(FirstExampleGroup As VBASpecExampleGroup)
         frmOutput.Show vbModeless
     End If
     PrintLine
-    PrintLine FirstExampleGroup.Description
+    PrintLine FirstGroup.Description
 End Sub
 
-Public Sub IVBASpecOutput_BeginExampleGroup(ExampleGroup As VBASpecExampleGroup)
-    PrintLine ExampleGroup.Description, ExampleGroup.Level
-End Sub
-
-Public Sub IVBASpecOutput_BeginExample(Example As VBASpecExample)
-End Sub
-
-Public Sub IVBASpecOutput_EndExample(Example As VBASpecExample)
-    PrintLine ResultTypeToString(Example.Result) & sExamplePrefix & Example.Description, Example.Level
-    If Err.Number <> 0 Then
-        PrintLater sError & "#" & Err.Number & " " & Err.Description, Example.Level
-        Err.Clear
-    ElseIf Example.Pending Then
-        PrintLater sPending & Example.CompleteDescription, Example.Level
-    ElseIf Example.Result = Failed Then
-        PrintLater sFailed & Example.CompleteDescription, Example.Level
-        Dim Expectation As VBASpecExpectation
-        For Each Expectation In Example.Expectations(Failed)
-            PrintLater Expectation.FailureMessage, Example.Level + 8
-        Next Expectation
+Public Sub IVBASpecOutput_BeginGroup(Group As VBASpecGroup)
+    If Group.Expectations.Count = 0 Then
+        If Len(Trim$(Group.Description)) > 0 Then
+            PrintLine Group.Description, Group.Level
+        End If
     End If
 End Sub
 
-Public Sub IVBASpecOutput_EndExampleGroup(ExampleGroup As VBASpecExampleGroup)
+Public Sub IVBASpecOutput_EndGroup(Group As VBASpecGroup)
+    If Group.Expectations.Count > 0 Then
+        'PrintLine ResultTypeToString(Group.Result) & sExamplePrefix & Group.Description, Group.Level
+        If Err.Number <> 0 Then
+            PrintLater sError & "#" & Err.Number & " " & Err.Description, Group.Level
+            Err.Clear
+        ElseIf Group.Pending Then
+            PrintLater sPending & Group.CompleteDescription, Group.Level
+        ElseIf Group.Result = Failed Then
+            PrintLater sFailed & Group.CompleteDescription, Group.Level
+            Dim Expectation As VBASpecExpectation
+            For Each Expectation In Group.Expectations(Failed)
+                PrintLater Expectation.FailureMessage, Group.Level + 8
+            Next Expectation
+        End If
+    End If
     If Err.Number <> 0 Then
-        PrintLater sError & "#" & Err.Number & " " & Err.Description, ExampleGroup.Level
+        PrintLater sError & "#" & Err.Number & " " & Err.Description, Group.Level
         Err.Clear
     End If
     If Len(sBuffer) Then

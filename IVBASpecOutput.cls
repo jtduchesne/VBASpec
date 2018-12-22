@@ -19,16 +19,12 @@ End Property
 Public Property Let Done(bValue As Boolean)
 End Property
 
-Public Sub BeginSuite(FirstExampleGroup As VBASpecExampleGroup)
+Public Sub BeginSuite(FirstExampleGroup As VBASpecGroup)
 End Sub
-Public Sub BeginExampleGroup(ExampleGroup As VBASpecExampleGroup)
-End Sub
-Public Sub BeginExample(Example As VBASpecExample)
+Public Sub BeginGroup(Group As VBASpecGroup)
 End Sub
 
 Public Sub EndSuite(Suite As VBASpecSuite)
 End Sub
-Public Sub EndExampleGroup(ExampleGroup As VBASpecExampleGroup)
-End Sub
-Public Sub EndExample(Example As VBASpecExample)
+Public Sub EndGroup(Group As VBASpecGroup)
 End Sub
