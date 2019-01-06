@@ -144,28 +144,39 @@ End Property
 
 '========================================================================================================================================'
 
+Private Sub Assign(Variable, ByRef Into)
+    If IsObject(Variable) Then
+        Set Into = Variable
+    Else
+        Into = Variable
+    End If
+End Sub
+
 Public Property Get subject()
     If IsEmpty(vSubject) Then
-        If IsObject(clsParent.subject) Then
-            Set subject = clsParent.subject
-        Else
-            subject = clsParent.subject
-        End If
+        Assign clsParent.subject, Into:=subject
     Else
-        If IsObject(vSubject) Then
-            Set subject = vSubject
-        Else
-            subject = vSubject
-        End If
+        Assign vSubject, Into:=subject
     End If
 End Property
-
 Public Property Let subject(vValue As Variant)
     vSubject = vValue
 End Property
 Public Property Set subject(vValue As Variant)
     Set vSubject = vValue
 End Property
+
+Public Property Get its(ByVal PropertyName As String) As Variant
+    Assign CallByName(Me.subject, PropertyName, VbGet), Into:=its
+End Property
+Public Property Let its(ByVal PropertyName As String, vValue As Variant)
+    CallByName Me.subject, PropertyName, VbLet, CVar(vValue)
+End Property
+Public Property Set its(ByVal PropertyName As String, vValue As Variant)
+    CallByName Me.subject, PropertyName, VbSet, CVar(vValue)
+End Property
+
+'========================================================================================================================================'
 
 Public Function Expect_It() As VBASpecExpectation
     Set Expect_It = Me.Expect(Me.subject)
@@ -176,7 +187,7 @@ Public Function Expect_Its(ByVal PropertyName As String) As VBASpecExpectation
         PropertyName = Mid$(PropertyName, 2)
     End Select
     On Error Resume Next
-    Set Expect_Its = Me.Expect(CallByName(Me.subject, sProcName, VbGet))
+    Set Expect_Its = Me.Expect(its(PropertyName))
     If Err.Number = 438 Then
         Set Expect_Its = Me.Expect.Fail(Err.Description & ": " & AnyValueAsText(Me.subject) & sSharp & PropertyName)
     End If

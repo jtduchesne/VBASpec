@@ -121,6 +121,8 @@ Friend Sub FinishGroup(Group As VBASpecGroup)
         Case Else
             iPendingCount = iPendingCount + 1
         End Select
+    Else
+        If Group.Pending Then iPendingCount = iPendingCount + 1
     End If
     oOutput.EndGroup Group
 End Sub

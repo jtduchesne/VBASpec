@@ -18,7 +18,9 @@ Private Const sError As String = "  [-ERROR-] "
 Private StartedAt As Date
 Private bRunning As Boolean
 
+Private sLabel As String
 Private sStatus As String
+Private iStatusCount As Integer
 
 Private bDone As Boolean
 
@@ -35,23 +37,34 @@ Private Function ResultTypeToString(ResultType As eVBASpecResult) As String
     End Select
 End Function
 
-Private Sub StartStatus(Optional sLabel As String = vbNullString)
-    sStatus = sLabel & " ["
+Private Sub StartStatus(Optional Label As String)
+    sLabel = Label
+    sStatus = Label & " ["
 End Sub
 Private Sub StopStatus()
-    UpdateStatus "]"
-    PrintStatus
+    sStatus = sStatus & "] " & iStatusCount
+    iStatusCount = 0
+    PrintLine sStatus
 End Sub
-Private Sub UpdateStatus(sValue As String)
-    sStatus = sStatus & sValue
+Private Sub UpdateStatus(ResultType As eVBASpecResult)
+    sStatus = sStatus & ResultTypeToString(ResultType)
+    iStatusCount = iStatusCount + 1
+    If (iStatusCount Mod 100) = 0 Then
+        PrintLine sStatus
+        sStatus = Space(Len(sLabel) + 2)
+    End If
 End Sub
 
-Private Sub PrintStatus()
-    Debug.Print sStatus
-End Sub
 Private Sub PrintLine(Optional sLine As String = vbNullString, Optional iIndent As Integer = 0)
     If iIndent > 0 Then sLine = Space(iIndent * 2) & sLine
     Debug.Print sLine
+End Sub
+
+Private Sub PrintErrorIfAny()
+    If Err.Number <> 0 Then
+        PrintLine sError & "#" & Err.Number & " " & Err.Description, 2
+        Err.Clear
+    End If
 End Sub
 
 Private Sub PrintSummary(Suite As VBASpecSuite)
@@ -111,14 +124,9 @@ Public Sub IVBASpecOutput_BeginGroup(Group As VBASpecGroup)
 End Sub
 
 Public Sub IVBASpecOutput_EndGroup(Group As VBASpecGroup)
-    If Group.Pending Then
-        PrintLine Group.CompleteDescription & sPending
-    Else
-        UpdateStatus ResultTypeToString(Group.Result)
-        If Err.Number <> 0 Then
-            PrintLine sError & "#" & Err.Number & " " & Err.Description
-            Err.Clear
-        ElseIf Group.Pending Then
+    If Group.Expectations.Count > 0 Or Group.Pending Then
+        UpdateStatus Group.Result
+        If Group.Result = Pending Then
             PrintLine sPending & Group.CompleteDescription
         ElseIf Group.Result = Failed Then
             PrintLine sFailed & Group.CompleteDescription
@@ -126,12 +134,10 @@ Public Sub IVBASpecOutput_EndGroup(Group As VBASpecGroup)
             For Each Expectation In Group.Expectations(Failed)
                 PrintLine Expectation.FailureMessage, 8
             Next Expectation
+            Err.Clear
         End If
     End If
-    If Err.Number <> 0 Then
-        PrintLine sError & "#" & Err.Number & " " & Err.Description
-        Err.Clear
-    End If
+    PrintErrorIfAny
 End Sub
 
 Public Sub IVBASpecOutput_EndSuite(Suite As VBASpecSuite)

@@ -69,6 +69,22 @@ End Sub
 Private Sub PrintLater(Optional sLine As String = vbNullString, Optional iIndent As Integer = 0)
     AppendLineTo sBuffer, sLine, iIndent
 End Sub
+
+Private Sub PrintBuffer()
+    If Len(sBuffer) Then
+        PrintLine sBuffer
+        PrintLine
+        sBuffer = vbNullString
+    End If
+End Sub
+
+Private Sub PrintErrorIfAny()
+    If Err.Number <> 0 Then
+        PrintLine sError & "#" & Err.Number & " " & Err.Description, 2
+        Err.Clear
+    End If
+End Sub
+
 Private Sub PrintSummary(Suite As VBASpecSuite)
     Dim iTotal As Integer
     Dim iPassed As Integer
@@ -134,12 +150,9 @@ Public Sub IVBASpecOutput_BeginGroup(Group As VBASpecGroup)
 End Sub
 
 Public Sub IVBASpecOutput_EndGroup(Group As VBASpecGroup)
-    If Group.Expectations.Count > 0 Then
+    If Group.Expectations.Count > 0 Or Group.Pending Then
         'PrintLine ResultTypeToString(Group.Result) & sExamplePrefix & Group.Description, Group.Level
-        If Err.Number <> 0 Then
-            PrintLater sError & "#" & Err.Number & " " & Err.Description, Group.Level
-            Err.Clear
-        ElseIf Group.Pending Then
+        If Group.Pending Then
             PrintLater sPending & Group.CompleteDescription, Group.Level
         ElseIf Group.Result = Failed Then
             PrintLater sFailed & Group.CompleteDescription, Group.Level
@@ -147,17 +160,11 @@ Public Sub IVBASpecOutput_EndGroup(Group As VBASpecGroup)
             For Each Expectation In Group.Expectations(Failed)
                 PrintLater Expectation.FailureMessage, Group.Level + 8
             Next Expectation
+            Err.Clear
         End If
     End If
-    If Err.Number <> 0 Then
-        PrintLater sError & "#" & Err.Number & " " & Err.Description, Group.Level
-        Err.Clear
-    End If
-    If Len(sBuffer) Then
-        PrintLine sBuffer
-        PrintLine
-        sBuffer = vbNullString
-    End If
+    PrintBuffer
+    PrintErrorIfAny
 End Sub
 
 Public Sub IVBASpecOutput_EndSuite(Suite As VBASpecSuite)
