@@ -20,6 +20,8 @@ Function AnyValueAsText(Value As Variant, Optional bShowAddress As Boolean = Fal
         If VarType(Value) = vbString Then
             AnyValueAsText = """" & Value & """"
             If bShowAddress Then AnyValueAsText = AnyValueAsText & "[" & VarPtr(Value) & "]"
+        ElseIf VarType(Value) = vbDouble Then
+            AnyValueAsText = Format(Value, "#.0#########")
         Else
             AnyValueAsText = CStr(Value)
         End If

@@ -22,6 +22,8 @@ Private clsParent As VBASpecGroup
 
 Private colExpectations As Collection
 
+Private dictCaptures As Scripting.Dictionary
+
 Private vResult As Variant
 Private vSubject As Variant
 Private bPending As Boolean
@@ -39,6 +41,7 @@ Private Sub Class_Terminate()
     End If
     Set clsParent = Nothing
     Set colExpectations = Nothing
+    Set dictCaptures = Nothing
 End Sub
 
 Friend Property Get Description() As String
@@ -58,7 +61,11 @@ Friend Property Get CompleteDescription() As String
         ElseIf AscW(sDescription) = iSharp Or AscW(sDescription) = iPeriod Then
             CompleteDescription = sParentDescription & sDescription
         Else
-            CompleteDescription = sParentDescription & sSpace & sDescription
+            If Right$(sParentDescription, Len(sDescription)) <> sDescription Then
+                CompleteDescription = sParentDescription & sSpace & sDescription
+            Else
+                CompleteDescription = sParentDescription
+            End If
         End If
     Else
         CompleteDescription = sParentDescription
@@ -167,7 +174,11 @@ Public Property Set subject(vValue As Variant)
 End Property
 
 Public Property Get its(ByVal PropertyName As String) As Variant
+    On Error GoTo TryAsMethod
     Assign CallByName(Me.subject, PropertyName, VbGet), Into:=its
+    Exit Property
+TryAsMethod:
+    Assign CallByName(Me.subject, PropertyName, VbMethod), Into:=its
 End Property
 Public Property Let its(ByVal PropertyName As String, vValue As Variant)
     CallByName Me.subject, PropertyName, VbLet, CVar(vValue)
@@ -178,16 +189,52 @@ End Property
 
 '========================================================================================================================================'
 
+Public Function Capture(ParamArray PropertyNames()) As Variant
+    If UBound(PropertyNames) < LBound(PropertyNames) Then
+        Assign Me.subject, Into:=Capture
+        If IsObject(Capture) Then
+            Set Captures(vbNullString) = Capture
+        Else
+            Captures(vbNullString) = Capture
+        End If
+    Else
+        Dim PropertyName
+        For Each PropertyName In PropertyNames
+            Assign its(PropertyName), Into:=Capture
+            If IsObject(Capture) Then
+                Set Captures(CStr(PropertyName)) = Capture
+            Else
+                Captures(CStr(PropertyName)) = Capture
+            End If
+        Next PropertyName
+    End If
+End Function
+Friend Property Get Captured(Optional ByVal PropertyName As String) As Variant
+    If Captures.Exists(PropertyName) Then
+        Assign Captures(PropertyName), Into:=Captured
+    Else
+        If Not clsParent Is Nothing Then
+            Assign clsParent.Captured(PropertyName), Into:=Captured
+        End If
+    End If
+End Property
+Private Property Get Captures() As Scripting.Dictionary
+    If dictCaptures Is Nothing Then Set dictCaptures = New Scripting.Dictionary
+    Set Captures = dictCaptures
+End Property
+
+'========================================================================================================================================'
+
 Public Function Expect_It() As VBASpecExpectation
-    Set Expect_It = Me.Expect(Me.subject)
+    Set Expect_It = Me.Expect(Me.subject).WithCapture(Me.Captured)
 End Function
 
 Public Function Expect_Its(ByVal PropertyName As String) As VBASpecExpectation
     If (AscW(PropertyName) = iSharp) Or (AscW(PropertyName) = iPeriod) Then
         PropertyName = Mid$(PropertyName, 2)
-    End Select
+    End If
     On Error Resume Next
-    Set Expect_Its = Me.Expect(its(PropertyName))
+    Set Expect_Its = Me.Expect(its(PropertyName)).WithCapture(Me.Captured(PropertyName))
     If Err.Number = 438 Then
         Set Expect_Its = Me.Expect.Fail(Err.Description & ": " & AnyValueAsText(Me.subject) & sSharp & PropertyName)
     End If
@@ -366,6 +413,42 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                     .Expect(subject.Expectations(Failed)).ToNotInclude oPassed
                     .Expect(subject.Expectations(Failed)).ToInclude oFailed
                 End With
+            End With
+        End With
+        
+        With .Describe(".Capture(PropertyNames)")
+            With .It("stores a Property at a chosen time")
+                Set .subject = New Collection
+                .subject.Add "something"
+                .Capture "Count"
+                .subject.Add "something"
+                
+                .Expect(.Captured("Count")).ToEqual .its("Count") - 1
+            End With
+            
+            With .It("stays in its own context")
+                Set .subject = New Collection
+                .subject.Add "something"
+                .Capture "Count"
+                .subject.Add "something else"
+                
+                With .Context("but")
+                    With .It("is accessible in children")
+                        .Expect(.Captured("Count")).ToEqual .its("Count") - 1
+                    End With
+                End With
+                With .Context("and")
+                    With .It("cannot be changed by children")
+                        With .Context("children")
+                            .Capture "Count"
+                            .Expect(.Captured("Count")).ToEqual .its("Count")
+                        End With
+                        .Expect(.Captured("Count")).ToEqual .its("Count") - 1
+                    End With
+                    .subject.Add "some more"
+                End With
+                
+                .Expect(.Captured("Count")).ToEqual .its("Count") - 2
             End With
         End With
         

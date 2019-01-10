@@ -15,10 +15,12 @@ Private Const ACTUALTYPE_INTERPOLATION As String = "#{actualtype}"
 Private Const EXPECTED_INTERPOLATION As String = "#{expected}"
 
 Private Const FAILURE_MSG As String = "Expected #{expected}, got #{actual}"
-Private Const FAILURE_MSG_NEGATED As String = "Not expected to be #{actual}"
+Private Const FAILURE_MSG_NEGATED As String = "#{actual} not expected to be #{expected}"
 
 Private vActual As Variant
 Private vExpected As Variant
+
+Private vCaptured As Variant
 
 Private bPassed As Boolean
 Private bFailed As Boolean
@@ -84,6 +86,16 @@ End Function
 
 '========================================================================================================================================'
 
+Public Function WithCapture(vValue As Variant) As VBASpecExpectation
+    If IsObject(vValue) Then
+        Set vCaptured = vValue
+    Else
+        vCaptured = vValue
+    End If
+    
+    Set WithCapture = Me
+End Function
+
 Public Function AndAlso() As VBASpecExpectation
     Set AndAlso = Me
 End Function
@@ -99,6 +111,8 @@ End Function
 Public Function IsEqual(Actual As Variant, Expected As Variant) As Boolean
     If IsObject(Actual) Or IsObject(Expected) Then
         IsEqual = False
+    ElseIf VarType(Actual) = vbString And VarType(Expected) = vbString Then
+        IsEqual = (StrComp(Actual, Expected, vbTextCompare) = 0)
     ElseIf VarType(Actual) = vbDouble And VarType(Expected) = vbDouble Then
         IsEqual = IsCloseTo(Actual, Expected, 15)
     Else
@@ -377,6 +391,26 @@ End Function
 
 '========================================================================================================================================'
 
+Public Function ToChange(Optional by As Variant) As VBASpecExpectation
+    If IsMissing(by) Then
+        Set ToChange = VerifyActual("IsEqual", vCaptured, "Expected #{expected} to change, but it didn't", Inverse:=True)
+    Else
+        Set ToChange = VerifyActual("IsEqual", vCaptured + by, "Expected " & AnyValueAsText(vCaptured) & _
+                                                                " to become #{expected}, but got #{actual}" & _
+                                                                " (" & AnyValueAsText(Me.Actual - (vCaptured + by)) & ")")
+    End If
+End Function
+Public Function ToNotChange(Optional by As Variant) As VBASpecExpectation
+    If IsMissing(by) Then
+        Set ToNotChange = VerifyActual("IsEqual", vCaptured, "Expected #{expected} not to change, but got #{actual}")
+    Else
+        Set ToNotChange = VerifyActual("IsEqual", vCaptured + by, "Expected " & AnyValueAsText(vCaptured) & _
+                                                                  " not to become #{expected}, but it did", Inverse:=True)
+    End If
+End Function
+
+'========================================================================================================================================'
+
 Private Function IsLike(Var1 As Variant, Var2 As Variant) As Boolean
     If IsObject(Var1) Or IsObject(Var2) Then
         IsLike = IsSame(Var1, Var2)
@@ -588,8 +622,8 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                 .Expect(True).ToNotEqual False
             End With
             With .It("works with Strings")
-                .Expect("Abc").ToEqual "Abc"
-                .Expect("Abc").ToNotEqual "abc"
+                .Expect("Abc").ToEqual "abc"
+                .Expect("Abc").ToNotEqual "Abcd"
             End With
             With .It("works with Integers")
                 .Expect(2048).ToEqual 2048
@@ -947,6 +981,62 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                 End With
             End With
         End With
+        
+        With .Describe(".ToChange/.ToNotChange")
+            With .It("works with boolean")
+                .subject = False
+                .Capture
+                .subject = True
+                .Expect_It.ToChange
+                .subject = False
+                .Expect_It.ToNotChange
+            End With
+            With .It("works with integer")
+                .subject = 1
+                .Capture
+                .Expect_It.ToNotChange
+                .Expect_It.ToChange by:=0
+                .subject = 2
+                .Expect_It.ToChange
+                .Expect_It.ToChange by:=1
+                .Expect_It.ToNotChange by:=2
+            End With
+            With .It("works with double")
+                .subject = 1.5
+                .Capture
+                .subject = 2
+                .Expect_It.ToChange
+                .Expect_It.ToChange by:=0.5
+            End With
+            With .It("works with String")
+                .subject = "Origin"
+                .Capture
+                .subject = "Original"
+                .Expect_It.ToChange
+                .subject = "Orig"
+                .Expect_It.ToChange
+            End With
+            With .It("works with mixed types")
+                On Error Resume Next
+                .subject = "Origin"
+                .Capture
+                .subject = 1
+                .Expect_It.ToChange
+                Set .subject = New Collection
+                .Expect_It.ToChange
+                .Expect.NoError.WasRaised
+                On Error GoTo 0
+            End With
+            With .It("works between contexts")
+                .subject = 1
+                .Capture
+                With .Context
+                    .subject = 2
+                    .Expect_It.ToChange
+                End With
+                .Expect_It.ToNotChange
+            End With
+       End With
         
         On Error Resume Next
         Dim errorTrigger
