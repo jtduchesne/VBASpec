@@ -100,23 +100,24 @@ Friend Property Get Pending() As Boolean
     Pending = bPending
 End Property
 
+Friend Property Get Failed() As Boolean
+    Dim Expectation As VBASpecExpectation
+    For Each Expectation In colExpectations
+        If Expectation.Failed Then
+            Failed = True
+            Exit Property
+        End If
+    Next Expectation
+End Property
+
 Friend Property Get Result() As eVBASpecResult
     If Pending Then
         Result = eVBASpecResult.Pending
         Exit Property
     End If
     If IsEmpty(vResult) Then
-        Dim Expectation As VBASpecExpectation
-        For Each Expectation In colExpectations
-            If Expectation.Failed Then
-                vResult = eVBASpecResult.Failed
-                GoTo Done
-            End If
-        Next Expectation
-        vResult = eVBASpecResult.Passed
+        vResult = IIf(Me.Failed, eVBASpecResult.Failed, eVBASpecResult.Passed)
     End If
-    
-Done:
     Result = vResult
 End Property
 
@@ -128,7 +129,7 @@ Friend Property Get Expectations(Optional Filter As eVBASpecResult = [_All]) As 
     
     Dim Expectation As VBASpecExpectation
     Select Case Filter
-    Case Passed
+    Case eVBASpecResult.Passed
         Set Expectations = New Collection
         
         For Each Expectation In colExpectations
@@ -136,7 +137,7 @@ Friend Property Get Expectations(Optional Filter As eVBASpecResult = [_All]) As 
                 Expectations.Add Expectation
             End If
         Next Expectation
-    Case Failed
+    Case eVBASpecResult.Failed
         Set Expectations = New Collection
         
         For Each Expectation In colExpectations
@@ -161,7 +162,9 @@ End Sub
 
 Public Property Get subject()
     If IsEmpty(vSubject) Then
-        Assign clsParent.subject, Into:=subject
+        If Not clsParent Is Nothing Then
+            Assign clsParent.subject, Into:=subject
+        End If
     Else
         Assign vSubject, Into:=subject
     End If
@@ -181,10 +184,14 @@ TryAsMethod:
     Assign CallByName(Me.subject, PropertyName, VbMethod), Into:=its
 End Property
 Public Property Let its(ByVal PropertyName As String, vValue As Variant)
+    On Error Resume Next
     CallByName Me.subject, PropertyName, VbLet, CVar(vValue)
+    If Err.Number = 424 Then Me.Expect.Fail "The subject is either not an object, or is empty"
 End Property
 Public Property Set its(ByVal PropertyName As String, vValue As Variant)
+    On Error Resume Next
     CallByName Me.subject, PropertyName, VbSet, CVar(vValue)
+    If Err.Number = 424 Then Me.Expect.Fail "The subject is either not an object, or is empty"
 End Property
 
 '========================================================================================================================================'
@@ -359,6 +366,42 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
             End With
         End With
         
+        With .Describe("#Failed")
+            Set subject = New VBASpecGroup
+            
+            With .It("defaults to False")
+                .Expect(subject.Failed).ToBeFalse
+            End With
+            
+            With .Context("if all expectations passes")
+                Set subject = New VBASpecGroup
+                subject.Expect(True).ToBeTrue
+                subject.Expect(False).ToBeFalse
+                
+                With .It("returns False")
+                    .Expect(subject.Failed).ToBeFalse
+                End With
+            End With
+            With .Context("if any expectation fails")
+                Set subject = New VBASpecGroup
+                subject.Expect(True).ToBeTrue
+                subject.Expect(True).ToBeFalse
+                
+                With .It("returns True")
+                    .Expect(subject.Failed).ToBeTrue
+                End With
+            End With
+            
+            With .It("does not cache the result")
+                Set subject = New VBASpecGroup
+                
+                subject.Expect(True).ToBeTrue
+                .Expect(subject.Failed).ToBeFalse
+                subject.Expect(True).ToBeFalse
+                .Expect(subject.Failed).ToBeTrue
+            End With
+        End With
+        
         With .Describe("#Result")
             Set subject = New VBASpecGroup
             
@@ -404,14 +447,14 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
             End With
             With .Context("if Filter = Passed")
                 With .It("returns only passed expectations")
-                    .Expect(subject.Expectations(Passed)).ToInclude oPassed
-                    .Expect(subject.Expectations(Passed)).ToNotInclude oFailed
+                    .Expect(subject.Expectations(eVBASpecResult.Passed)).ToInclude oPassed
+                    .Expect(subject.Expectations(eVBASpecResult.Passed)).ToNotInclude oFailed
                 End With
             End With
             With .Context("if Filter = Failed")
                 With .It("returns only failed expectations")
-                    .Expect(subject.Expectations(Failed)).ToNotInclude oPassed
-                    .Expect(subject.Expectations(Failed)).ToInclude oFailed
+                    .Expect(subject.Expectations(eVBASpecResult.Failed)).ToNotInclude oPassed
+                    .Expect(subject.Expectations(eVBASpecResult.Failed)).ToInclude oFailed
                 End With
             End With
         End With

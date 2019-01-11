@@ -6,11 +6,19 @@ Function AnyValueAsText(Value As Variant, Optional bShowAddress As Boolean = Fal
     If VBA.IsMissing(Value) Then
         AnyValueAsText = "(Missing)"
     ElseIf VBA.IsObject(Value) Then
-        If Value Is Nothing Then
-            AnyValueAsText = TypeName(Value)
-        Else
-            AnyValueAsText = TypeName(Value)
-            If bShowAddress Then AnyValueAsText = AnyValueAsText & "[" & ObjPtr(Value) & "]"
+        AnyValueAsText = TypeName(Value)
+        If Not Value Is Nothing Then
+            If IsEnumerable(Value) Then
+                Dim lCount As Long
+                lCount = CountEnumerable(Value)
+                Select Case lCount
+                Case 0:    AnyValueAsText = AnyValueAsText & "(Empty)"
+                Case 1:    AnyValueAsText = AnyValueAsText & "(1 item)"
+                Case Else: AnyValueAsText = AnyValueAsText & "(" & lCount & " items)"
+                End Select
+            Else
+                If bShowAddress Then AnyValueAsText = AnyValueAsText & "[" & ObjPtr(Value) & "]"
+            End If
         End If
     ElseIf VBA.IsEmpty(Value) Or VBA.IsNull(Value) Then
         AnyValueAsText = TypeName(Value)
@@ -26,15 +34,6 @@ Function AnyValueAsText(Value As Variant, Optional bShowAddress As Boolean = Fal
             AnyValueAsText = CStr(Value)
         End If
         If bShowType Then AnyValueAsText = AnyValueAsText & "(" & TypeName(Value) & ")"
-    End If
-    If IsEnumerable(Value) Then
-        Dim lCount As Long
-        lCount = CountEnumerable(Value)
-        Select Case lCount
-        Case 0:    AnyValueAsText = AnyValueAsText & "(Empty)"
-        Case 1:    AnyValueAsText = AnyValueAsText & "(1 item)"
-        Case Else: AnyValueAsText = AnyValueAsText & "(" & lCount & " items)"
-        End Select
     End If
 End Function
 
