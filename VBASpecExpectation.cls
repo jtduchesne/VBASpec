@@ -18,27 +18,27 @@ Private Const FALSE_INTERPOLATION As String = "#{false}"
 
 Private Const FAILURE_MSG As String = "Expected #{expected}, got #{actual}"
 Private Const FAILURE_MSG_NEGATED As String = "#{actual} not expected to be #{expected}"
+Private Const WARNING_MSG_PREFIX As String = ">>> Warning: "
+Private Const WARNING_MSG_SUFFIX As String = " <<<"
 
 Private vActual As Variant
 Private vExpected As Variant
 
-Private vCaptured As Variant
+Private vCapture As Variant
+Private dictOtherCaptures As Scripting.Dictionary
 
 Private bPassed As Boolean
 Private bFailed As Boolean
 Private sFailureMessage As String
+Private sWarningMessage As String
 
-Private iSignificantFigures As Integer
+Private vAdditionalArgument As Variant
 Private bErrorChecked As Boolean
 
 '========================================================================================================================================'
 
 Friend Property Get Actual()
-    If IsObject(vActual) Then
-        Set Actual = vActual
-    Else
-        Actual = vActual
-    End If
+    Assign vActual, Into:=Actual
 End Property
 Friend Property Let Actual(Value As Variant)
     vActual = Value
@@ -48,11 +48,7 @@ Friend Property Set Actual(Value As Variant)
 End Property
 
 Friend Property Get Expected()
-    If IsObject(vExpected) Then
-        Set Expected = vExpected
-    Else
-        Expected = vExpected
-    End If
+    Assign vExpected, Into:=Expected
 End Property
 Friend Property Let Expected(Value As Variant)
     vExpected = Value
@@ -70,11 +66,7 @@ End Property
 
 Friend Property Get FailureMessage() As String
     If bFailed Then
-        If Len(sFailureMessage) > 0 Then
-            FailureMessage = sFailureMessage
-        Else
-            FailureMessage = Err.Description
-        End If
+        FailureMessage = sFailureMessage
     End If
 End Property
 
@@ -86,20 +78,26 @@ Friend Function Fail(sMessage As String) As VBASpecExpectation
     Set Fail = Me
 End Function
 
+Public Function Warn(sMessage As String) As VBASpecExpectation
+    sWarningMessage = WARNING_MSG_PREFIX & sMessage & WARNING_MSG_SUFFIX
+    
+    Set Warn = Me
+End Function
+
 '========================================================================================================================================'
 
-Public Function WithCapture(vValue As Variant) As VBASpecExpectation
-    If IsObject(vValue) Then
-        Set vCaptured = vValue
-    Else
-        vCaptured = vValue
-    End If
+Public Function WithCapture(Capture As Variant, Optional OtherCaptures As Scripting.Dictionary) As VBASpecExpectation
+    Assign Capture, Into:=vCapture
+    Set dictOtherCaptures = OtherCaptures
     
     Set WithCapture = Me
 End Function
 
 Public Function AndAlso() As VBASpecExpectation
     Set AndAlso = Me
+End Function
+Public Function ButAlso() As VBASpecExpectation
+    Set ButAlso = Me
 End Function
 
 '========================================================================================================================================'
@@ -115,8 +113,8 @@ Public Function IsEqual(Actual As Variant, Expected As Variant, Optional ByRef R
         IsEqual = False
     ElseIf VarType(Actual) = vbString And VarType(Expected) = vbString Then
         IsEqual = (StrComp(Actual, Expected, vbTextCompare) = 0)
-    ElseIf VarType(Actual) = vbDouble And VarType(Expected) = vbDouble Then
-        IsEqual = IsCloseTo(Actual, Expected, 15)
+    ElseIf (VarType(Actual) = vbDouble Or VarType(Expected) = vbDouble) Then
+        IsEqual = IsCloseTo(Actual, Expected, Result, 15)
     Else
         IsEqual = (Actual = Expected)
     End If
@@ -125,42 +123,32 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToBe(Expected As Variant) As VBASpecExpectation
-    Dim sPropertyName As String
     If VarType(Expected) = vbString Then
-        sPropertyName = Expected
-        On Error GoTo PropertyDoesntExist
-        Set ToBe = VerifyActual("QueryAttribute", sPropertyName, "Expected #{actual}#" & sPropertyName & " to be #{true}" & _
-                                                                 ", but is #{result}")
-        Exit Function
-    End If
-PropertyDoesntExist:
-    If Len(sPropertyName) > 0 Then
-        If Left$(sPropertyName, 2) <> "Is" Then
-            sPropertyName = "Is" & sPropertyName
-            Resume
+        If HasProperty(vActual, Expected) Then
+            Set ToBe = VerifyActual("ReturnsTrue", CStr(Expected), "Expected #{actual}#" & Expected & " to be #{true}" & _
+                                                                   ", but is #{result}")
+            Exit Function
+        ElseIf HasProperty(vActual, "Is" & Expected) Then
+            Set ToBe = VerifyActual("ReturnsTrue", "Is" & Expected, "Expected #{actual}#Is" & Expected & " to be #{true}" & _
+                                                                    ", but is #{result}")
+            Exit Function
         End If
     End If
     Set ToBe = VerifyActual("IsSame", Expected)
-    Err.Clear
 End Function
 Public Function ToNotBe(Expected As Variant) As VBASpecExpectation
-    Dim sPropertyName As String
     If VarType(Expected) = vbString Then
-        sPropertyName = Expected
-        On Error GoTo PropertyDoesntExist
-        Set ToNotBe = VerifyActual("QueryAttribute", Expected, "Expected #{actual}#" & sPropertyName & " to be #{false}" & _
-                                                               ", but is #{result}", Inverse:=True)
-        Exit Function
-    End If
-PropertyDoesntExist:
-    If Len(sPropertyName) > 0 Then
-        If Left$(sPropertyName, 2) <> "Is" Then
-            sPropertyName = "Is" & sPropertyName
-            Resume
+        If HasProperty(vActual, Expected) Then
+            Set ToNotBe = VerifyActual("ReturnsTrue", CStr(Expected), "Expected #{actual}#" & Expected & " to be #{false}" & _
+                                                                      ", but is #{result}", Inverse:=True)
+            Exit Function
+        ElseIf HasProperty(vActual, "Is" & Expected) Then
+            Set ToNotBe = VerifyActual("ReturnsTrue", "Is" & Expected, "Expected #{actual}#Is" & Expected & " to be #{false}" & _
+                                                                       ", but is #{result}", Inverse:=True)
+            Exit Function
         End If
     End If
     Set ToNotBe = VerifyActual("IsSame", Expected, Inverse:=True)
-    Err.Clear
 End Function
 Public Function IsSame(Actual As Variant, Expected As Variant, Optional ByRef Result As Variant) As Boolean
     If IsObject(Actual) And IsObject(Expected) Then
@@ -173,22 +161,18 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToHave(Expected As Variant) As VBASpecExpectation
-    Set ToHave = VerifyActual("QueryAttribute", "Has" & Expected, "Expected #{actual}#Has" & Expected & " to be #{true}, but is #{result}")
+    Set ToHave = VerifyActual("ReturnsTrue", "Has" & Expected, "Expected #{actual}#Has" & Expected & " to be #{true}" & _
+                                                               ", but is #{result}")
 End Function
 Public Function ToNotHave(Expected As Variant) As VBASpecExpectation
-    Set ToNotHave = VerifyActual("QueryAttribute", "Has" & Expected, "Expected #{actual}#Has" & Expected & " to be #{false}" & _
-                                                                     ", but is #{result}", Inverse:=True)
+    Set ToNotHave = VerifyActual("ReturnsTrue", "Has" & Expected, "Expected #{actual}#Has" & Expected & " to be #{false}" & _
+                                                                  ", but is #{result}", Inverse:=True)
 End Function
-Public Function QueryAttribute(Actual As Variant, Expected As Variant, Optional ByRef Result As Variant) As Boolean
-    On Error GoTo TryAsMethod
-    Result = CallByName(Actual, CStr(Expected), VbGet)
-    GoTo Done
-TryAsMethod:
-    On Error GoTo -1: On Error Resume Next
-    Result = CallByName(Actual, CStr(Expected), VbMethod)
+Public Function ReturnsTrue(Actual As Variant, Expected As Variant, Optional ByRef Result As Variant) As Boolean
+    On Error Resume Next
+    AssignProperty CStr(Expected), Of:=Actual, Into:=Result
+    ReturnsTrue = IsTrue(Result)
     Err.Clear
-Done:
-    QueryAttribute = IsTrue(Result)
 End Function
 
 '========================================================================================================================================'
@@ -213,7 +197,7 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToBeEmpty() As VBASpecExpectation
-    Set ToBeEmpty = VerifyActual("IsEmpty", Empty, "#{actual}(#{result}) expected to be #{expected}")
+    Set ToBeEmpty = VerifyActual("IsEmpty", Empty, "#{actual} expected to be #{expected}")
 End Function
 Public Function ToNotBeEmpty() As VBASpecExpectation
    Set ToNotBeEmpty = VerifyActual("IsEmpty", Empty, Inverse:=True)
@@ -224,7 +208,6 @@ Public Function IsEmpty(Actual As Variant, Optional Expected As Variant, Optiona
     Else
         IsEmpty = IsNothing(Actual) Or VBA.IsEmpty(Actual) Or VBA.IsNull(Actual) Or VBA.IsMissing(Actual)
     End If
-    Result = TypeName(Actual)
 End Function
 
 '========================================================================================================================================'
@@ -350,24 +333,38 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToBeCloseTo(Expected As Variant, Optional SignificantFigures As Integer = 2) As VBASpecExpectation
-    iSignificantFigures = SignificantFigures
-    Set ToBeCloseTo = VerifyActual("IsCloseTo", Expected, "Expected #{actual} to be close to #{expected} (" & _
-                                                          SignificantFigures & " significant figures)")
+    vAdditionalArgument = SignificantFigures
+    Set ToBeCloseTo = VerifyActual("IsCloseTo", Expected, "Expected #{actual} to be close to #{expected}#{result}")
 End Function
 Public Function ToNotBeCloseTo(Expected As Variant, Optional SignificantFigures As Integer = 2) As VBASpecExpectation
-    iSignificantFigures = SignificantFigures
-    Set ToNotBeCloseTo = VerifyActual("IsCloseTo", Expected, "Expected #{actual} not to be close to #{expected} (" & _
-                                                             SignificantFigures & " significant figures)", Inverse:=True)
+    vAdditionalArgument = SignificantFigures
+    Set ToNotBeCloseTo = VerifyActual("IsCloseTo", Expected, "Expected #{actual} not to be close to #{expected}#{result}", Inverse:=True)
 End Function
 Public Function IsCloseTo(Actual As Variant, Expected As Variant, Optional ByRef Result As Variant, _
                                                                   Optional SignificantFigures As Integer = -1) As Boolean
-    Dim sActual As String
-    Dim sExpected As String
-    If SignificantFigures < 1 Then SignificantFigures = iSignificantFigures
-    sActual = Format$(Actual, Left$("0.00000000000000", SignificantFigures + 1) & IIf(Actual >= 1, "e+0", "e-0"))
-    sExpected = Format$(Expected, Left$("0.00000000000000", SignificantFigures + 1) & IIf(Expected >= 1, "e+0", "e-0"))
-    
-    IsCloseTo = (StrComp(sActual, sExpected, vbBinaryCompare) = 0)
+    If IsNumeric(Actual) And IsNumeric(Expected) Then
+        Dim sActual As String
+        Dim sExpected As String
+        If SignificantFigures < 1 Then SignificantFigures = vAdditionalArgument
+        sActual = Format$(Actual, Left$("0.00000000000000", SignificantFigures + 1) & IIf(Actual >= 1, "E+0", "E-0"))
+        sExpected = Format$(Expected, Left$("0.00000000000000", SignificantFigures + 1) & IIf(Expected >= 1, "E+0", "E-0"))
+        
+        IsCloseTo = (StrComp(sActual, sExpected, vbBinaryCompare) = 0)
+        
+        Dim dDiff As Double
+        dDiff = Actual - Expected
+        If dDiff <> 0 And Abs(dDiff) < 1 Then
+            Result = " [Diff "
+            If Abs(dDiff) < 0.00001 Then
+                Result = Result & Format(dDiff, "+0.0#E+0;-0.0#E+0")
+            Else
+                Result = Result & Format(dDiff, "+0.0####;-0.0####")
+            End If
+            Result = Result & "]"
+        End If
+    Else
+        IsCloseTo = False
+    End If
 End Function
 
 '========================================================================================================================================'
@@ -450,20 +447,76 @@ End Function
 '========================================================================================================================================'
 
 Public Function ToChange(Optional by As Variant) As VBASpecExpectation
-    If IsMissing(by) Then
-        Set ToChange = VerifyActual("IsEqual", vCaptured, "Expected #{expected} to change, but it didn't", Inverse:=True)
+    If Not IsMissing(by) Then
+        If by <> 0 Then
+            vAdditionalArgument = by
+            Set ToChange = VerifyActual("HasChanged", vCapture, "Expected #{expected} to become " & AnyValueAsText(vCapture + by) & _
+                                                                ", but is now #{actual}#{result}", Inverse:=True)
+        Else
+            Set ToChange = ToNotChange
+        End If
     Else
-        Set ToChange = VerifyActual("IsEqual", vCaptured + by, "Expected " & AnyValueAsText(vCaptured) & _
-                                                                " to become #{expected}, but is now #{actual}" & _
-                                                                " [" & AnyValueAsText(Me.Actual - (vCaptured + by)) & "]")
+        Set ToChange = VerifyActual("HasChanged", vCapture, "Expected #{expected} to change, but it didn't")
     End If
 End Function
 Public Function ToNotChange(Optional by As Variant) As VBASpecExpectation
-    If IsMissing(by) Then
-        Set ToNotChange = VerifyActual("IsEqual", vCaptured, "Expected #{expected} not to change, but is now #{actual}")
+    If Not IsMissing(by) Then
+        vAdditionalArgument = by
+        Set ToNotChange = VerifyActual("HasChanged", vCapture, "Expected #{expected} not to become " & AnyValueAsText(vCapture + by) & _
+                                                               ", but it did")
     Else
-        Set ToNotChange = VerifyActual("IsEqual", vCaptured + by, "Expected " & AnyValueAsText(vCaptured) & _
-                                                                  " not to become #{expected}, but it did", Inverse:=True)
+        Set ToNotChange = VerifyActual("HasChanged", vCapture, "Expected #{expected}" & _
+                                                               " not to change, but is now #{actual}#{result}", Inverse:=True)
+    End If
+End Function
+Public Function HasChanged(Actual As Variant, Expected As Variant, Optional ByRef Result As Variant, _
+                                                                   Optional by As Variant) As Boolean
+    If IsMissing(by) Then by = vAdditionalArgument
+    If IsObject(Actual) Then
+        If IsObject(Expected) Then
+            If Not dictOtherCaptures Is Nothing Then
+                Dim colChanges As New Collection
+                Dim CaptureName
+                On Error Resume Next
+                For Each CaptureName In dictOtherCaptures.Keys
+                    If Len(CaptureName) Then
+                        If Not IsLike(GetProperty(CaptureName, Of:=Actual), dictOtherCaptures(CaptureName)) Then
+                            HasChanged = True
+                            colChanges.Add CaptureName
+                        End If
+                    Else
+                        If Not IsSame(Actual, Expected) Then
+                            HasChanged = True
+                        End If
+                    End If
+                Next CaptureName
+                If colChanges.Count > 0 Then
+                    Result = " [" & colChanges(1)
+                    If colChanges.Count > 3 Then
+                        Result = Result & "," & colChanges(2) & ",+" & colChanges.Count - 2 & "others"
+                    Else
+                        Dim i As Integer
+                        For i = 2 To colChanges.Count
+                            Result = Result & "," & colChanges(i)
+                        Next i
+                    End If
+                    Result = Result & "]"
+                End If
+            Else
+                Warn "Compared only the objects reference, not the actual properties of each"
+                HasChanged = Not IsSame(Actual, Expected)
+            End If
+        Else
+            HasChanged = True
+        End If
+    ElseIf (VarType(Actual) = vbBoolean Or VarType(Expected) = vbBoolean) Then
+        HasChanged = (Actual <> Expected)
+    ElseIf VarType(Actual) = vbString And VarType(Expected) = vbString Then
+        HasChanged = (StrComp(Actual, Expected, vbBinaryCompare) <> 0)
+    ElseIf (VarType(Actual) = vbDouble Or VarType(Expected) = vbDouble) Then
+        HasChanged = Not IsCloseTo(Actual, (Expected + by), Result, 15)
+    Else
+        HasChanged = (Actual <> (Expected + by))
     End If
 End Function
 
@@ -516,11 +569,7 @@ End Function
 Private Function VerifyActual(ProcName As String, Expected As Variant, Optional sMessage As String = vbNullString, _
                                                                        Optional Inverse As Boolean = False) As VBASpecExpectation
     If Not bFailed Then
-        If IsObject(Expected) Then
-            Set Me.Expected = Expected
-        Else
-            Me.Expected = Expected
-        End If
+        Assign Expected, Into:=vExpected
         
         Dim Result As Variant
         If Inverse Then
@@ -541,12 +590,14 @@ Private Function VerifyActual(ProcName As String, Expected As Variant, Optional 
             
             Dim bShowType As Boolean
             If Not Inverse Then
-                Select Case VarType(Expected)
-                Case vbBoolean: bShowType = (CBool(Me.Actual) = CBool(Expected))
-                Case vbInteger: bShowType = (CInt(Me.Actual) = CInt(Expected))
-                Case vbDouble:  bShowType = (CDbl(Me.Actual) = CDbl(Expected))
-                Case Else:      bShowType = (AnyValueAsText(Me.Actual) = AnyValueAsText(Expected))
-                End Select
+                If (InStr(1, ProcName, "Change", vbBinaryCompare) = 0) Then
+                    Select Case VarType(Expected)
+                    Case vbBoolean: bShowType = (CBool(Me.Actual) = CBool(Expected))
+                    Case vbInteger: bShowType = (CInt(Me.Actual) = CInt(Expected))
+                    Case vbDouble:  bShowType = (CDbl(Me.Actual) = CDbl(Expected))
+                    Case Else:      bShowType = (AnyValueAsText(Me.Actual) = AnyValueAsText(Expected))
+                    End Select
+                End If
             End If
             
             If InStr(1, sMessage, ACTUAL_INTERPOLATION, vbBinaryCompare) > 0 Then
@@ -565,6 +616,7 @@ Private Function VerifyActual(ProcName As String, Expected As Variant, Optional 
                 sMessage = Replace$(sMessage, FALSE_INTERPOLATION, AnyValueAsText(False), Compare:=vbBinaryCompare)
             End If
             sFailureMessage = sMessage
+            If Len(sWarningMessage) > 0 Then sFailureMessage = sFailureMessage & vbNewLine & sWarningMessage
         End If
     End If
     
@@ -1057,7 +1109,10 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
             If ShowExamples And Not .Failed Then
                 With .Context("- Example :")
                     .Expect(1).ToBeCloseTo 2
+                    .Expect(1).ToBeCloseTo 1.12
+                    .Expect(1).ToBeCloseTo 1.000001, 6
                     .Expect(1).ToNotBeCloseTo 1
+                    .Expect(1).ToNotBeCloseTo 1.001
                 End With
             End If
         End With
@@ -1248,17 +1303,18 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
         End With
         
         With .Describe(".ToChange/.ToNotChange")
-            With .It("works with boolean")
+            With .It("works with Booleans")
                 .subject = False
                 .Capture
-                .subject = True
-                .Expect_It.ToChange
                 .subject = False
                 .Expect_It.ToNotChange
+                .subject = True
+                .Expect_It.ToChange
             End With
-            With .It("works with integer")
+            With .It("works with Integers")
                 .subject = 1
                 .Capture
+                .subject = 1
                 .Expect_It.ToNotChange
                 .Expect_It.ToChange by:=0
                 .subject = 2
@@ -1266,14 +1322,14 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                 .Expect_It.ToChange by:=1
                 .Expect_It.ToNotChange by:=2
             End With
-            With .It("works with double")
+            With .It("works with Doubles")
                 .subject = 1.5
                 .Capture
                 .subject = 2
                 .Expect_It.ToChange
                 .Expect_It.ToChange by:=0.5
             End With
-            With .It("works with String")
+            With .It("works with Strings")
                 .subject = "Origin"
                 .Capture
                 .subject = "Original"
@@ -1281,6 +1337,21 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                 .subject = "Orig"
                 .Expect_It.ToChange
             End With
+            With .It("works with Objects, but only checks captured properties")
+                Set .subject = New Collection
+                .Capture
+                .subject.Add "something"
+                .Expect_It.ToNotChange
+                Set .subject = New Collection
+                .Expect_It.ToChange
+                .Capture
+                .subject.Add "something"
+                .Expect_It.ToNotChange
+                .Capture "Count"
+                .subject.Add "something else"
+                .Expect_It.ToChange
+            End With
+            
             With .It("works with mixed types")
                 On Error Resume Next
                 .subject = "Origin"
@@ -1292,6 +1363,7 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                 .Expect.NoError.WasRaised
                 On Error GoTo 0
             End With
+            
             With .It("works between contexts")
                 .subject = 1
                 .Capture

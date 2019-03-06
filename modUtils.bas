@@ -1,6 +1,40 @@
 Attribute VB_Name = "modUtils"
 Option Explicit
 
+Sub Assign(Variable, ByRef Into)
+    If IsObject(Variable) Then
+        Set Into = Variable
+    Else
+        Into = Variable
+    End If
+End Sub
+Sub AssignProperty(Property As String, Of, ByRef Into)
+    Assign GetProperty(Property, Of), Into:=Into
+End Sub
+Function GetProperty(ByVal Property As String, Of)
+    On Error GoTo TryAsMethod
+    Assign CallByName(Of, Property, VbGet), Into:=GetProperty
+    Exit Function
+TryAsMethod:
+    Assign CallByName(Of, Property, VbMethod), Into:=GetProperty
+    Err.Clear
+End Function
+Function HasProperty(Object, ByVal Property As String) As Boolean
+    If Not IsObject(Object) Then Exit Function
+    On Error GoTo TryAsMethod
+    Dim Result
+    Assign CallByName(Object, Property, VbGet), Into:=Result
+    HasProperty = True
+    Exit Function
+TryAsMethod:
+    On Error GoTo -1
+    On Error GoTo ExitFunction
+    Assign CallByName(Object, Property, VbMethod), Into:=Result
+    HasProperty = True
+ExitFunction:
+    Err.Clear
+End Function
+
 Function AnyValueAsText(Value As Variant, Optional bShowAddress As Boolean = False, _
                                           Optional bShowType As Boolean = False) As String
     If VBA.IsMissing(Value) Then

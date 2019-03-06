@@ -152,14 +152,6 @@ End Property
 
 '========================================================================================================================================'
 
-Private Sub Assign(Variable, ByRef Into)
-    If IsObject(Variable) Then
-        Set Into = Variable
-    Else
-        Into = Variable
-    End If
-End Sub
-
 Public Property Get subject()
     If IsEmpty(vSubject) Then
         If Not clsParent Is Nothing Then
@@ -177,22 +169,22 @@ Public Property Set subject(vValue As Variant)
 End Property
 
 Public Property Get its(ByVal PropertyName As String) As Variant
-    On Error GoTo TryAsMethod
-    Assign CallByName(Me.subject, PropertyName, VbGet), Into:=its
-    Exit Property
-TryAsMethod:
-    Assign CallByName(Me.subject, PropertyName, VbMethod), Into:=its
+    AssignProperty PropertyName, Of:=Me.subject, Into:=its
 End Property
 Public Property Let its(ByVal PropertyName As String, vValue As Variant)
-    On Error Resume Next
-    CallByName Me.subject, PropertyName, VbLet, CVar(vValue)
-    If Err.Number = 424 Then Me.Expect.Fail "The subject is either not an object, or is empty"
+    LetOrSetIts VbLet, PropertyName, vValue
 End Property
 Public Property Set its(ByVal PropertyName As String, vValue As Variant)
-    On Error Resume Next
-    CallByName Me.subject, PropertyName, VbSet, CVar(vValue)
-    If Err.Number = 424 Then Me.Expect.Fail "The subject is either not an object, or is empty"
+    LetOrSetIts VbSet, PropertyName, vValue
 End Property
+Private Sub LetOrSetIts(CallType As VbCallType, ByVal PropertyName As String, vValue As Variant)
+    On Error Resume Next
+    CallByName Me.subject, PropertyName, CallType, CVar(vValue)
+    If Err.Number <> 0 Then
+        Me.Expect.Fail AnyValueAsText(Me.subject) & "#" & PropertyName & ": " & Err.Description
+        Err.Clear
+    End If
+End Sub
 
 '========================================================================================================================================'
 
@@ -216,6 +208,7 @@ Public Function Capture(ParamArray PropertyNames()) As Variant
         Next PropertyName
     End If
 End Function
+
 Friend Property Get Captured(Optional ByVal PropertyName As String) As Variant
     If Captures.Exists(PropertyName) Then
         Assign Captures(PropertyName), Into:=Captured
@@ -225,7 +218,7 @@ Friend Property Get Captured(Optional ByVal PropertyName As String) As Variant
         End If
     End If
 End Property
-Private Property Get Captures() As Scripting.Dictionary
+Friend Property Get Captures() As Scripting.Dictionary
     If dictCaptures Is Nothing Then Set dictCaptures = New Scripting.Dictionary
     Set Captures = dictCaptures
 End Property
@@ -233,7 +226,11 @@ End Property
 '========================================================================================================================================'
 
 Public Function Expect_It() As VBASpecExpectation
-    Set Expect_It = Me.Expect(Me.subject).WithCapture(Me.Captured)
+    If (Captures.Count > 1) And Captures.Exists(vbNullString) Then
+        Set Expect_It = Me.Expect(Me.subject).WithCapture(Me.Captured, Captures)
+    Else
+        Set Expect_It = Me.Expect(Me.subject).WithCapture(Me.Captured)
+    End If
 End Function
 
 Public Function Expect_Its(ByVal PropertyName As String) As VBASpecExpectation
@@ -460,7 +457,7 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
         End With
         
         With .Describe(".Capture(PropertyNames)")
-            With .It("stores a Property at a chosen time")
+            With .It("takes a snapshot of a Property's value at that point")
                 Set .subject = New Collection
                 .subject.Add "something"
                 .Capture "Count"
@@ -469,7 +466,7 @@ Friend Sub UnitTest(Suite As VBASpecSuite)
                 .Expect(.Captured("Count")).ToEqual .its("Count") - 1
             End With
             
-            With .It("stays in its own context")
+            With .It("stores the value in current Group's context")
                 Set .subject = New Collection
                 .subject.Add "something"
                 .Capture "Count"
