@@ -446,6 +446,13 @@ End Function
 
 '========================================================================================================================================'
 
+Public Function ToBecome(Expected As Variant) As VBASpecExpectation
+    Set ToBecome = ToChange.AndAlso.ToEqual(Expected)
+End Function
+Public Function ToNotBecome(Expected As Variant) As VBASpecExpectation
+    Set ToNotBecome = ToChange.ButAlso.ToNotEqual(Expected)
+End Function
+
 Public Function ToChange(Optional by As Variant) As VBASpecExpectation
     If Not IsMissing(by) Then
         If by <> 0 Then
